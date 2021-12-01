@@ -1,0 +1,32 @@
+{
+    "save_dir": "/workdir/data/experiments/test",
+    "num_epochs": 500,
+    "pretrain_path": "",
+    "image": {
+        "width": 512,
+        "height": 512
+    },
+    "mask_shrink_ratio": 0.6,
+    "border_shrink_ratio": 0.8,
+    "train": {
+        "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
+        "image_root": "/data/htr_dataset_SEGM_15102021/images/",
+        "category_ids": [1, 2, 3],
+        "processed_json_path": "data/htr_dataset_SEGM_15102021/annotations_train.json",
+        "batch_size": 8
+    },
+    "val": {
+        "json_path": "/data/htr_dataset_SEGM_15102021/annotations_val.json",
+        "image_root": "/data/htr_dataset_SEGM_15102021/images/",
+        "category_ids": [1, 2, 3],
+        "processed_json_path": "data/htr_dataset_SEGM_15102021/annotations_val.json",
+        "batch_size": 8
+    },
+    "test": {
+        "json_path": "/data/htr_dataset_SEGM_15102021/annotations_test.json",
+        "image_root": "/data/htr_dataset_SEGM_15102021/images/",
+        "category_ids": [1, 2, 3],
+        "processed_json_path": "data/htr_dataset_SEGM_15102021/annotations_test.json",
+        "batch_size": 8
+    }
+}
