@@ -12,21 +12,21 @@
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
         "image_root": "/data/htr_dataset_SEGM_15102021/images/",
         "category_ids": [1, 2, 3],
-        "processed_json_path": "data/htr_dataset_SEGM_15102021/annotations_train.json",
+        "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_train.csv",
         "batch_size": 8
     },
     "val": {
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_val.json",
         "image_root": "/data/htr_dataset_SEGM_15102021/images/",
         "category_ids": [1, 2, 3],
-        "processed_json_path": "data/htr_dataset_SEGM_15102021/annotations_val.json",
+        "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_val.csv",
         "batch_size": 8
     },
     "test": {
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_test.json",
         "image_root": "/data/htr_dataset_SEGM_15102021/images/",
         "category_ids": [1, 2, 3],
-        "processed_json_path": "data/htr_dataset_SEGM_15102021/annotations_test.json",
+        "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_test.csv",
         "batch_size": 8
     }
 }

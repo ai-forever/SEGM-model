@@ -1,7 +1,80 @@
+import torch
+from torch.utils.data import Dataset
+
 import cv2
+from pathlib import Path
+import pandas as pd
 import pyclipper
 import numpy as np
 from shapely.geometry import Polygon
+
+
+def get_full_img_path(img_root_path, csv_path):
+    """Merge csv root path and image name."""
+    root_dir = Path(csv_path).parent
+    img_path = root_dir / Path(img_root_path)
+    return str(img_path)
+
+
+def read_and_concat_datasets(csv_paths):
+    """Read csv files and concatenate them into one pandas DataFrame.
+
+    Args:
+        csv_paths (list): List of the dataset csv paths.
+
+    Return:
+        data (pandas.DataFrame): Concatenated datasets.
+    """
+    data = []
+    for csv_path in csv_paths:
+        csv_data = pd.read_csv(csv_path)
+        csv_data['dataset_name'] = csv_path
+        csv_data['file_name'] = csv_data['file_name'].apply(
+            get_full_img_path, csv_path=csv_path)
+        csv_data['srink_mask_name'] = csv_data['srink_mask_name'].apply(
+            get_full_img_path, csv_path=csv_path)
+        csv_data['border_mask_name'] = csv_data['border_mask_name'].apply(
+            get_full_img_path, csv_path=csv_path)
+        data.append(
+            csv_data[['file_name', 'dataset_name', 'srink_mask_name',
+                      'border_mask_name']]
+        )
+    data = pd.concat(data, ignore_index=True)
+    return data
+
+
+class SEGMDataset(Dataset):
+    """torch.Dataset for segmentation model.
+
+    Args:
+        data (pandas.DataFrame): Dataset with 'file_name', 'srink_mask_name'
+            and 'border_mask_name' columns with relative paths to images and
+            target masks.
+        transform (torchvision.Compose): Image transforms, default is None.
+    """
+
+    def __init__(self, data, transform=None):
+        super().__init__()
+        self.transform = transform
+        self.data_len = len(data)
+        self.img_paths = data['file_name'].values
+        self.shrink_paths = data['srink_mask_name'].values
+        self.border_paths = data['border_mask_name'].values
+
+    def __len__(self):
+        return self.data_len
+
+    def __getitem__(self, idx):
+        img_path = self.img_paths[idx]
+        shrink_path = self.shrink_paths[idx]
+        border_path = self.border_paths[idx]
+        image = cv2.imread(img_path)
+        shrink_mask = np.load(shrink_path)
+        border_mask = np.load(border_path)
+        if self.transform is not None:
+            image, shrink_mask, border_mask = \
+                self.transform(image, shrink_mask, border_mask)
+        return image, shrink_mask, border_mask
 
 
 def is_correct_polygon(polygon):
@@ -80,7 +153,7 @@ class MakeBorderMask:
 
     def get_border_mask(self):
         canvas = self.canvas
-        canvas = canvas * (self.thresh_max - self.thresh_min) + self.thresh_min  # ??
+        canvas = canvas * (self.thresh_max - self.thresh_min) + self.thresh_min
         return canvas
 
     def _distance_matrix(self, xs, ys, a, b):

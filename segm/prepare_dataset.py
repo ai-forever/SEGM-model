@@ -56,8 +56,8 @@ def get_preprocess_sample(config, image_id, data, image, category_ids):
             polygon = numbers2coords(data_ann['segmentation'][0])
             polygons.append(polygon)
 
-    image, polygons = sample_resize(polygons, image,
-        config.get_image('height'), config.get_image('width'))
+    image, polygons = sample_resize(
+        polygons, image, config.get_image('height'), config.get_image('width'))
 
     img_h, img_w = image.shape[:2]
     shrink_mask = get_shrink_mask(polygons, img_h, img_w,
@@ -68,16 +68,16 @@ def get_preprocess_sample(config, image_id, data, image, category_ids):
 
 
 def preprocess_data(
-    config, json_path, image_root, category_ids, save_json_path
+    config, json_path, image_root, category_ids, save_data_path
 ):
     """Create and save targets for DBnet training (shrink and border masks).
     """
     image_folder = Path('images')
     shrink_folder = Path('shrink_targets')
     border_folder = Path('border_targets')
-    save_root = Path(save_json_path).parent
 
     # create folders
+    save_root = Path(save_data_path).parent
     image_dir = save_root / image_folder
     os.makedirs(str(image_dir), exist_ok=True)
     shrink_dir = save_root / shrink_folder
@@ -111,7 +111,7 @@ def preprocess_data(
         list(zip(image_paths, shrink_paths, border_paths)),
         columns=['file_name', 'srink_mask_name', 'border_mask_name']
     )
-    pd_data.to_csv(save_json_path, index=False)
+    pd_data.to_csv(save_data_path, index=False)
 
 
 def main(args):
@@ -121,21 +121,21 @@ def main(args):
         json_path=config.get_train('json_path'),
         image_root=config.get_train('image_root'),
         category_ids=config.get_train('category_ids'),
-        save_json_path=config.get_train('processed_json_path')
+        save_data_path=config.get_train('processed_data_path')
     )
     preprocess_data(
         config=config,
         json_path=config.get_val('json_path'),
         image_root=config.get_val('image_root'),
         category_ids=config.get_val('category_ids'),
-        save_json_path=config.get_val('processed_json_path')
+        save_data_path=config.get_val('processed_data_path')
     )
     preprocess_data(
         config=config,
         json_path=config.get_test('json_path'),
         image_root=config.get_test('image_root'),
         category_ids=config.get_test('category_ids'),
-        save_json_path=config.get_test('processed_json_path')
+        save_data_path=config.get_test('processed_data_path')
     )
 
 
