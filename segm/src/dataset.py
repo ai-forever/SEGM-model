@@ -53,9 +53,10 @@ class SEGMDataset(Dataset):
         transform (torchvision.Compose): Image transforms, default is None.
     """
 
-    def __init__(self, data, transform=None):
+    def __init__(self, data, image_transforms=None, mask_transforms=None):
         super().__init__()
-        self.transform = transform
+        self.image_transforms = image_transforms
+        self.mask_transforms = mask_transforms
         self.data_len = len(data)
         self.img_paths = data['file_name'].values
         self.shrink_paths = data['srink_mask_name'].values
@@ -71,13 +72,15 @@ class SEGMDataset(Dataset):
         image = cv2.imread(img_path)
         shrink_mask = np.load(shrink_path)
         border_mask = np.load(border_path)
-        if self.transform is not None:
-            image, shrink_mask, border_mask = \
-                self.transform(image, shrink_mask, border_mask)
+        if self.image_transforms is not None:
+            image = self.image_transforms(image)
+        if self.mask_transforms is not None:
+            shrink_mask = self.mask_transforms(shrink_mask)
+            border_mask = self.mask_transforms(border_mask)
         return image, shrink_mask, border_mask
 
 
-def is_correct_polygon(polygon):
+def is_valid_polygon(polygon):
     if (
         polygon.length < 1
         or polygon.area <= 0
@@ -114,7 +117,7 @@ class MakeShrinkMask:
         pco = pyclipper.PyclipperOffset()
         pco.AddPath(polygon, pyclipper.JT_ROUND,
                     pyclipper.ET_CLOSEDPOLYGON)
-        if not is_correct_polygon(poly):
+        if not is_valid_polygon(poly):
             return False
         distance = int(poly.area * (1 - self.shrink_ratio ** 2) / poly.length)
         # polygon could be splitted to several parts after shrink operation
@@ -181,7 +184,7 @@ class MakeBorderMask:
         assert polygon.ndim == 2
         assert polygon.shape[1] == 2
         poly = Polygon(polygon)
-        if not is_correct_polygon(poly):
+        if not is_valid_polygon(poly):
             return False
         distance = poly.area * (1 - np.power(self.shrink_ratio, 2)) / poly.length
         subject = [tuple(l) for l in polygon]
