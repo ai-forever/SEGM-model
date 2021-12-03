@@ -8,12 +8,14 @@
     },
     "mask_shrink_ratio": 0.6,
     "border_shrink_ratio": 0.8,
+    "threshold": 0.5,
     "train": {
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
         "image_root": "/data/htr_dataset_SEGM_15102021/images/",
         "category_ids": [1, 2, 3],
         "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_train.csv",
-        "batch_size": 8
+        "batch_size": 8,
+        "dataset_len": 10000
     },
     "val": {
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_val.json",

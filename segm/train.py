@@ -10,9 +10,10 @@ from utils.utils import (
 )
 from segm.src.dataset import read_and_concat_datasets, SEGMDataset
 from segm.src.transforms import (
-    get_train_transforms, get_val_transforms, get_mask_transforms
+    get_train_transforms, get_image_transforms, get_mask_transforms
 )
 from segm.src.config import Config
+from segm.src.metrics import get_iou
 from segm.src.models import DBnet
 
 
@@ -21,9 +22,10 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def train_loop(
     data_loader, model, shrink_criterion, border_criterion,
-    binary_criterion, optimizer, epoch
+    binary_criterion, optimizer, epoch, threshold
 ):
     loss_avg = AverageMeter()
+    iou_avg = AverageMeter()
     strat_time = time.time()
     model.train()
     tqdm_data_loader = tqdm(data_loader, total=len(data_loader), leave=False)
@@ -38,22 +40,31 @@ def train_loop(
         shrink_loss = shrink_criterion(shrink_pred, shrink_targets)
         border_loss = border_criterion(border_pred, border_targets)
         binary_loss = binary_criterion(binary_pred, shrink_targets)
+
         loss = shrink_loss + binary_loss + 10 * border_loss
         loss_avg.update(loss.item(), batch_size)
+        iou = get_iou(binary_pred, shrink_targets, threshold)
+        iou_avg.update(iou, batch_size)
+
         loss.backward()
         # torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
         optimizer.step()
     loop_time = sec2min(time.time() - strat_time)
     for param_group in optimizer.param_groups:
         lr = param_group['lr']
-    print(f'\nEpoch {epoch}, Loss: {loss_avg.avg:.5f}, '
-          f'LR: {lr:.7f}, loop_time: {loop_time}')
+    print(f'\nEpoch {epoch}, '
+          f'Loss: {loss_avg.avg:.5f}, '
+          f'IOU: {iou_avg.avg:.4f}, '
+          f'LR: {lr:.7f}, '
+          f'loop_time: {loop_time}')
 
 
 def val_loop(
-    data_loader, model, shrink_criterion, border_criterion, binary_criterion
+    data_loader, model, shrink_criterion, border_criterion, binary_criterion,
+    threshold
 ):
     loss_avg = AverageMeter()
+    iou_avg = AverageMeter()
     strat_time = time.time()
     model.eval()
     tqdm_data_loader = tqdm(data_loader, total=len(data_loader), leave=False)
@@ -68,21 +79,33 @@ def val_loop(
             shrink_loss = shrink_criterion(shrink_pred, shrink_targets)
             border_loss = border_criterion(border_pred, border_targets)
             binary_loss = binary_criterion(binary_pred, shrink_targets)
+
             loss = shrink_loss + binary_loss + 10 * border_loss
             loss_avg.update(loss.item(), batch_size)
+            iou = get_iou(binary_pred, shrink_targets, threshold)
+            iou_avg.update(iou, batch_size)
     loop_time = sec2min(time.time() - strat_time)
     print(f'Validation, '
           f'Loss: {loss_avg.avg:.4f}, '
+          f'IOU: {iou_avg.avg:.4f}, '
           f'loop_time: {loop_time}')
     return loss_avg.avg
 
 
 def get_loaders(config):
     mask_transforms = get_mask_transforms()
+    image_transforms = get_image_transforms()
 
     data = read_and_concat_datasets([config.get_train('processed_data_path')])
-    train_transforms = get_train_transforms()
-    train_dataset = SEGMDataset(data, train_transforms, mask_transforms)
+    train_transforms = get_train_transforms(config.get_image('height'),
+                                            config.get_image('width'))
+    train_dataset = SEGMDataset(
+        data=data,
+        dataset_len=config.get_train('dataset_len'),
+        train_transforms=train_transforms,
+        image_transforms=image_transforms,
+        mask_transforms=mask_transforms
+    )
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=config.get_train('batch_size'),
@@ -90,8 +113,12 @@ def get_loaders(config):
     )
 
     data = read_and_concat_datasets([config.get_val('processed_data_path')])
-    val_transforms = get_val_transforms()
-    val_dataset = SEGMDataset(data, val_transforms, mask_transforms)
+    val_dataset = SEGMDataset(
+        data=data,
+        train_transforms=None,
+        image_transforms=image_transforms,
+        mask_transforms=mask_transforms
+    )
     val_loader = torch.utils.data.DataLoader(
         dataset=val_dataset,
         batch_size=config.get_val('batch_size'),
@@ -120,17 +147,18 @@ def main(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001,
                                   weight_decay=0.01)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer=optimizer, mode='min', factor=0.5, patience=15)
+        optimizer=optimizer, mode='min', factor=0.5, patience=10)
 
     weight_limit_control = FilesLimitControl()
     best_loss = np.inf
     val_loss = val_loop(val_loader, model, shrink_criterion, border_criterion,
-                        binary_criterion)
+                        binary_criterion, config.get('threshold'))
     for epoch in range(config.get('num_epochs')):
         train_loop(train_loader, model, shrink_criterion, border_criterion,
-                   binary_criterion, optimizer, epoch)
+                   binary_criterion, optimizer, epoch, config.get('threshold'))
         val_loss = val_loop(val_loader, model, shrink_criterion,
-                            border_criterion, binary_criterion)
+                            border_criterion, binary_criterion,
+                            config.get('threshold'))
         scheduler.step(val_loss)
         if val_loss < best_loss:
             best_loss = val_loss

@@ -1,7 +1,7 @@
-import torch
 from torch.utils.data import Dataset
 
 import cv2
+import random
 from pathlib import Path
 import pandas as pd
 import pyclipper
@@ -53,25 +53,38 @@ class SEGMDataset(Dataset):
         transform (torchvision.Compose): Image transforms, default is None.
     """
 
-    def __init__(self, data, image_transforms=None, mask_transforms=None):
+    def __init__(
+        self, data, dataset_len=None, train_transforms=None, image_transforms=None,
+        mask_transforms=None
+    ):
         super().__init__()
         self.image_transforms = image_transforms
         self.mask_transforms = mask_transforms
+        self.train_transforms = train_transforms
         self.data_len = len(data)
+        if dataset_len is None:
+            self.dataset_len = self.data_len
+        else:
+            self.dataset_len = dataset_len
         self.img_paths = data['file_name'].values
         self.shrink_paths = data['srink_mask_name'].values
         self.border_paths = data['border_mask_name'].values
 
     def __len__(self):
-        return self.data_len
+        return self.dataset_len
 
     def __getitem__(self, idx):
+        idx = random.randint(0, self.data_len-1)
+
         img_path = self.img_paths[idx]
         shrink_path = self.shrink_paths[idx]
         border_path = self.border_paths[idx]
         image = cv2.imread(img_path)
         shrink_mask = np.load(shrink_path)
         border_mask = np.load(border_path)
+        if self.train_transforms is not None:
+            image, shrink_mask, border_mask = \
+                self.train_transforms(image, shrink_mask, border_mask)
         if self.image_transforms is not None:
             image = self.image_transforms(image)
         if self.mask_transforms is not None:
