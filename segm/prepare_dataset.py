@@ -32,17 +32,14 @@ def get_border_mask(polygons, image_h, image_w, shrink_ratio):
     return border_mask_maker.get_border_mask()
 
 
-def sample_resize(polygons, image, new_img_h, new_img_w):
-    """Resize image and its polygon annotations."""
-    h, w = image.shape[:2]
-    h_ratio = new_img_h / h
-    w_ratio = new_img_w / w
-    resized_image = cv2.resize(image, (new_img_w, new_img_h), cv2.INTER_AREA)
+def polygon_resize(polygons, old_img_h, old_img_w, new_img_h, new_img_w):
+    h_ratio = new_img_h / old_img_h
+    w_ratio = new_img_w / old_img_w
     resized_polygons = []
     for polygon in polygons:
         r_p = [(int(x * w_ratio), int(y * h_ratio)) for x, y in polygon]
         resized_polygons.append(np.array(r_p))
-    return resized_image, resized_polygons
+    return resized_polygons
 
 
 def get_preprocess_sample(config, image_id, data, image, category_ids):
@@ -56,8 +53,10 @@ def get_preprocess_sample(config, image_id, data, image, category_ids):
             polygon = numbers2coords(data_ann['segmentation'][0])
             polygons.append(polygon)
 
-    image, polygons = sample_resize(
-        polygons, image, config.get_image('height'), config.get_image('width'))
+    img_h, img_w = image.shape[:2]
+    new_img_w, new_img_h = config.get_image('height'), config.get_image('width')
+    image = cv2.resize(image, (new_img_w, new_img_h), cv2.INTER_AREA)
+    polygons = polygon_resize(polygons, img_h, img_w, new_img_w, new_img_h)
 
     img_h, img_w = image.shape[:2]
     shrink_mask = get_shrink_mask(polygons, img_h, img_w,

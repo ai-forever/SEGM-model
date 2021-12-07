@@ -90,7 +90,7 @@ class SEGMDataset(Dataset):
         if self.mask_transforms is not None:
             shrink_mask = self.mask_transforms(shrink_mask)
             border_mask = self.mask_transforms(border_mask)
-        return image, shrink_mask, border_mask
+        return image, shrink_mask #, border_mask
 
 
 def is_valid_polygon(polygon):
@@ -154,22 +154,15 @@ class MakeBorderMask:
         image_h (Int): Image height.
         image_w (Int): Image width.
         shrink_ratio (Float): The ratio to shrink the border.
-        thresh_min (Float): Threshold of the border mask.
-        thresh_max (Float): Threshold of the border mask.
     """
 
-    def __init__(
-        self, image_h, image_w, shrink_ratio, thresh_min=0.3, thresh_max=0.7
-    ):
+    def __init__(self, image_h, image_w, shrink_ratio):
         self.shrink_ratio = shrink_ratio
-        self.thresh_min = thresh_min
-        self.thresh_max = thresh_max
         self.canvas = np.zeros((image_h, image_w), dtype=np.float32)
-        self.mask = np.zeros((image_h, image_w), dtype=np.float32)
 
     def get_border_mask(self):
         canvas = self.canvas
-        canvas = canvas * (self.thresh_max - self.thresh_min) + self.thresh_min
+        canvas = (canvas > 0.1).astype(np.uint8)  # binarize mask
         return canvas
 
     def _distance_matrix(self, xs, ys, a, b):
@@ -187,7 +180,7 @@ class MakeBorderMask:
         return distance
 
     def add_border_to_mask(self, polygon):
-        """Add new polygon border to the mask.
+        """Add new polygon border to the canvas.
 
         Args:
             polygon (np.array): Array of polygon coordinates
@@ -205,7 +198,6 @@ class MakeBorderMask:
         padding.AddPath(subject, pyclipper.JT_ROUND,
                         pyclipper.ET_CLOSEDPOLYGON)
         padded_polygon = np.array(padding.Execute(distance)[0])
-        cv2.fillPoly(self.mask, [padded_polygon.astype(np.int32)], 1.0)
         xmin = padded_polygon[:, 0].min()
         xmax = padded_polygon[:, 0].max()
         ymin = padded_polygon[:, 1].min()

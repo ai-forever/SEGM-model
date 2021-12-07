@@ -1,193 +1,129 @@
 """
-Code from:
-https://github.com/yts2020/DBnet_pytorch/blob/master/DBnet_pytorch.py#L309
+all credits to @nizhib
 """
-
-import torch
 import torch.nn as nn
+from torchvision.models.resnet import \
+    resnet18,\
+    resnet34,\
+    resnet50,\
+    resnet101,\
+    resnet152
+from torch.nn import Conv2d
+
+nonlinearity = nn.ReLU
 
 
-class DBHead(nn.Module):
-    def __init__(self, in_channels, k=50):
+ENCODERS = {
+    'resnet18': resnet18,
+    'resnet34': resnet34,
+    'resnet50': resnet50,
+    'resnet101': resnet101,
+    'resnet152': resnet152
+}
+
+
+class DecoderBlock(nn.Module):
+    def __init__(self, in_channels, n_filters):
         super().__init__()
-        self.k = k
-        self.binarize = nn.Sequential(
-            nn.Conv2d(in_channels, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.ConvTranspose2d(64, 64, 2, 2),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.ConvTranspose2d(64, 1, 2, 2),
-            nn.Sigmoid())
 
-        self.thresh = nn.Sequential(
-            nn.Conv2d(in_channels, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.ConvTranspose2d(64, 64, 2, 2),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.ConvTranspose2d(64, 1, 2, 2),
-            nn.Sigmoid())
+        # B, C, H, W -> B, C/4, H, W
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nonlinearity(inplace=True)
 
-    def forward(self, x):
-        shrink_maps = self.binarize(x)
-        threshold_maps = self.thresh(x)
-        binary_maps = self.step_function(shrink_maps, threshold_maps)
-        return shrink_maps, threshold_maps, binary_maps
+        # B, C/4, H, W -> B, C/4, H, W
+        self.deconv2 = nn.ConvTranspose2d(in_channels // 4, in_channels // 4, 3,
+                                          stride=2, padding=1, output_padding=1)
+        self.norm2 = nn.BatchNorm2d(in_channels // 4)
+        self.relu2 = nonlinearity(inplace=True)
 
-    def step_function(self, x, y):
-        return torch.reciprocal(1 + torch.exp(-self.k * (x - y)))
-
-
-class ResNet50BasicBlock(nn.Module):
-    def __init__(self, in_c, mid_c, out_c):
-        super().__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_c, out_channels=mid_c,
-                               kernel_size=1)
-        self.bn1 = nn.BatchNorm2d(mid_c)
-        self.conv2 = nn.Conv2d(in_channels=mid_c, out_channels=mid_c,
-                               kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(mid_c)
-        self.conv3 = nn.Conv2d(in_channels=mid_c, out_channels=out_c,
-                               kernel_size=1)
-        self.bn3 = nn.BatchNorm2d(out_c)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-        out = self.bn3(out)
-        out = x + out
-        out = self.relu(out)
-        return out
-
-
-class ResNet50DownBlock(nn.Module):
-    def __init__(self, in_c, mid_c, out_c, stride=1):
-        super().__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_c, out_channels=mid_c,
-                               kernel_size=1)
-        self.bn1 = nn.BatchNorm2d(mid_c)
-        self.conv2 = nn.Conv2d(in_channels=mid_c, out_channels=mid_c,
-                               kernel_size=3, stride=stride, padding=1)
-        self.bn2 = nn.BatchNorm2d(mid_c)
-        self.conv3 = nn.Conv2d(in_channels=mid_c, out_channels=out_c,
-                               kernel_size=1)
-        self.bn3 = nn.BatchNorm2d(out_c)
-        self.conv1_1 = nn.Conv2d(in_channels=in_c, out_channels=out_c,
-                                 stride=stride, kernel_size=1)
-        self.bn1_1 = nn.BatchNorm2d(out_c)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        x1 = self.conv1_1(x)
-        x1 = self.bn1_1(x1)
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-        out = self.bn3(out)
-        out = x1 + out
-        out = self.relu(out)
-        return out
-
-
-class DBnet(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7,
-                               stride=2, padding=3)
-        self.bn = nn.BatchNorm2d(64)
-        self.relu = nn.ReLU(inplace=True)
-        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.bottleneck1_1 = ResNet50DownBlock(in_c=64, mid_c=64, out_c=256)
-        self.bottleneck1_2 = ResNet50BasicBlock(in_c=256, mid_c=64, out_c=256)
-        self.bottleneck1_3 = ResNet50BasicBlock(in_c=256, mid_c=64, out_c=256)
-        self.bottleneck2_1 = ResNet50DownBlock(in_c=256, mid_c=128, out_c=512,
-                                               stride=2)
-        self.bottleneck2_2 = ResNet50BasicBlock(in_c=512, mid_c=128, out_c=512)
-        self.bottleneck2_3 = ResNet50BasicBlock(in_c=512, mid_c=128, out_c=512)
-        self.bottleneck2_4 = ResNet50BasicBlock(in_c=512, mid_c=128, out_c=512)
-        self.bottleneck3_1 = ResNet50DownBlock(in_c=512, mid_c=256, out_c=1024,
-                                               stride=2)
-        self.bottleneck3_2 = ResNet50BasicBlock(in_c=1024, mid_c=256, out_c=1024)
-        self.bottleneck3_3 = ResNet50BasicBlock(in_c=1024, mid_c=256, out_c=1024)
-        self.bottleneck3_4 = ResNet50BasicBlock(in_c=1024, mid_c=256, out_c=1024)
-        self.bottleneck3_5 = ResNet50BasicBlock(in_c=1024, mid_c=256, out_c=1024)
-        self.bottleneck3_6 = ResNet50BasicBlock(in_c=1024, mid_c=256, out_c=1024)
-        self.bottleneck4_1 = ResNet50DownBlock(in_c=1024, mid_c=512, out_c=2048,
-                                               stride=2)
-        self.bottleneck4_2 = ResNet50BasicBlock(in_c=2048, mid_c=512, out_c=2048)
-        self.bottleneck4_3 = ResNet50BasicBlock(in_c=2048, mid_c=512, out_c=2048)
-        # FPN
-        self.conv_c5_m5 = nn.Conv2d(in_channels=2048, out_channels=64, kernel_size=1)
-        self.conv_m5_p5 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        self.conv_c4_m4 = nn.Conv2d(in_channels=1024, out_channels=64, kernel_size=1)
-        self.conv_m4_p4 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        self.conv_c3_m3 = nn.Conv2d(in_channels=512, out_channels=64, kernel_size=1)
-        self.conv_m3_p3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        self.conv_c2_m2 = nn.Conv2d(in_channels=256, out_channels=64, kernel_size=1)
-        self.conv_m2_p2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        # concatnate
-        self.conv_p2_p2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        self.conv_p3_p3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        self.conv_p4_p4 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        self.conv_p5_p5 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        # Db_head
-        self.head = DBHead(in_channels=256)
+        # B, C/4, H, W -> B, C, H, W
+        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+        self.norm3 = nn.BatchNorm2d(n_filters)
+        self.relu3 = nonlinearity(inplace=True)
 
     def forward(self, x):
         x = self.conv1(x)
-        x = self.bn(x)
-        c1 = self.relu(x)
-        x = self.pool1(c1)
-        x = self.bottleneck1_1(x)
-        x = self.bottleneck1_2(x)
-        c2 = self.bottleneck1_3(x)
-        x = self.bottleneck2_1(c2)
-        x = self.bottleneck2_2(x)
-        x = self.bottleneck2_3(x)
-        c3 = self.bottleneck2_4(x)
-        x = self.bottleneck3_1(c3)
-        x = self.bottleneck3_2(x)
-        x = self.bottleneck3_3(x)
-        x = self.bottleneck3_4(x)
-        x = self.bottleneck3_5(x)
-        c4 = self.bottleneck3_6(x)
-        x = self.bottleneck4_1(c4)
-        x = self.bottleneck4_2(x)
-        c5 = self.bottleneck4_3(x)
-        m5 = self.conv_c5_m5(c5)
-        p5 = self.conv_m5_p5(m5)
-        c4_m4 = self.conv_c4_m4(c4)
-        m5_x2 = nn.functional.interpolate(m5, (m5.shape[-2] * 2, m5.shape[-1] * 2), mode='bilinear', align_corners=True)
-        m4 = m5_x2 + c4_m4
-        p4 = self.conv_m4_p4(m4)
-        c3_m3 = self.conv_c3_m3(c3)
-        m4_x2 = nn.functional.interpolate(m4, (m4.shape[-2] * 2, m4.shape[-1] * 2), mode='bilinear', align_corners=True)
-        m3 = m4_x2 + c3_m3
-        p3 = self.conv_m3_p3(m3)
-        c2_m2 = self.conv_c2_m2(c2)
-        m3_x2 = nn.functional.interpolate(m3, (m3.shape[-2] * 2, m3.shape[-1] * 2), mode='bilinear', align_corners=True)
-        m2 = m3_x2 + c2_m2
-        p2 = self.conv_m2_p2(m2)
-        p2 = self.conv_p2_p2(p2)
-        p3 = self.conv_p3_p3(p3)
-        p3 = nn.functional.interpolate(p3, (p3.shape[-2] * 2, p3.shape[-1] * 2), mode='bilinear', align_corners=True)
-        p4 = self.conv_p4_p4(p4)
-        p4 = nn.functional.interpolate(p4, (p4.shape[-2] * 4, p4.shape[-1] * 4), mode='bilinear', align_corners=True)
-        p5 = self.conv_p5_p5(p5)
-        p5 = nn.functional.interpolate(p5, (p5.shape[-2] * 8, p5.shape[-1] * 8), mode='bilinear', align_corners=True)
-        feature = torch.cat((p2, p3, p4, p5), dim=1)
-        shrink_maps, threshold_maps, binary_maps = self.head(feature)
-        return shrink_maps, threshold_maps, binary_maps
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.deconv2(x)
+        x = self.norm2(x)
+        x = self.relu2(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x
+
+
+class LinkResNet(nn.Module):
+    def __init__(self, input_channels=3, output_channels=1, dropout2d_p=0.5,
+                 pretrained=True, encoder='resnet18'):
+        assert input_channels > 0
+        assert encoder in ENCODERS
+        super().__init__()
+
+        if encoder in ['resnet18', 'resnet34']:
+            filters = [64, 128, 256, 512]
+        else:
+            filters = [256, 512, 1024, 2048]
+
+        resnet = ENCODERS[encoder](pretrained=pretrained)
+
+        if input_channels != 3:
+            resnet.conv1 = Conv2d(input_channels, 64, kernel_size=(7, 7),
+                                  stride=(2, 2), padding=(3, 3), bias=False)
+
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.firstmaxpool = resnet.maxpool
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = resnet.layer4
+
+        self.dropout2d1 = nn.Dropout2d(p=dropout2d_p)
+        self.dropout2d2 = nn.Dropout2d(p=dropout2d_p)
+        self.dropout2d3 = nn.Dropout2d(p=dropout2d_p)
+
+        # Decoder
+        self.decoder4 = DecoderBlock(filters[3], filters[2])
+        self.decoder3 = DecoderBlock(filters[2], filters[1])
+        self.decoder2 = DecoderBlock(filters[1], filters[0])
+        self.decoder1 = DecoderBlock(filters[0], filters[0])
+
+        # Final Classifier
+        self.finaldeconv1 = nn.ConvTranspose2d(filters[0], 32, 3, stride=2)
+        self.finalrelu1 = nonlinearity(inplace=True)
+        self.finalconv2 = nn.Conv2d(32, 32, 3)
+        self.finalrelu2 = nonlinearity(inplace=True)
+        self.finalconv3 = nn.Conv2d(32, output_channels, 2, padding=1)
+        self.sigmoid = nn.Sigmoid()
+
+    # noinspection PyCallingNonCallable
+    def forward(self, x):
+        # Encoder
+        x = self.firstconv(x)
+        x = self.firstbn(x)
+        x = self.firstrelu(x)
+        x = self.firstmaxpool(x)
+        e1 = self.encoder1(x)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+
+        e4 = self.encoder4(e3)
+
+        # Decoder with Skip Connections
+        d4 = self.decoder4(e4) + self.dropout2d1(e3)
+        # d4 = e3
+        d3 = self.decoder3(d4) + self.dropout2d2(e2)
+        d2 = self.decoder2(d3) + self.dropout2d3(e1)
+        d1 = self.decoder1(d2)
+
+        # Final Classification
+        f1 = self.finaldeconv1(d1)
+        f2 = self.finalrelu1(f1)
+        f3 = self.finalconv2(f2)
+        f4 = self.finalrelu2(f3)
+        f5 = self.finalconv3(f4)
+        return self.sigmoid(f5)

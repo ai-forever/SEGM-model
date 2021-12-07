@@ -14,40 +14,33 @@ from segm.src.transforms import (
 )
 from segm.src.config import Config
 from segm.src.metrics import get_iou
-from segm.src.models import DBnet
+from segm.src.losses import FbBceLoss
+from segm.src.models import LinkResNet
 
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def train_loop(
-    data_loader, model, shrink_criterion, border_criterion,
-    binary_criterion, optimizer, epoch, threshold
-):
+def train_loop(data_loader, model, criterion, optimizer, epoch, threshold):
     loss_avg = AverageMeter()
     iou_avg = AverageMeter()
     strat_time = time.time()
     model.train()
     tqdm_data_loader = tqdm(data_loader, total=len(data_loader), leave=False)
-    for images, shrink_targets, border_targets in tqdm_data_loader:
+    for images, targets in tqdm_data_loader:
         model.zero_grad()
         images = images.to(DEVICE)
-        shrink_targets = shrink_targets.to(DEVICE)
-        border_targets = border_targets.to(DEVICE)
+        targets = targets.to(DEVICE)
         batch_size = len(images)
-        shrink_pred, border_pred, binary_pred = model(images)
+        preds = model(images)
 
-        shrink_loss = shrink_criterion(shrink_pred, shrink_targets)
-        border_loss = border_criterion(border_pred, border_targets)
-        binary_loss = binary_criterion(binary_pred, shrink_targets)
-
-        loss = shrink_loss + binary_loss + 10 * border_loss
+        loss = criterion(preds, targets)
         loss_avg.update(loss.item(), batch_size)
-        iou = get_iou(binary_pred, shrink_targets, threshold)
+
+        iou = get_iou(preds, targets, threshold)
         iou_avg.update(iou, batch_size)
 
         loss.backward()
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
         optimizer.step()
     loop_time = sec2min(time.time() - strat_time)
     for param_group in optimizer.param_groups:
@@ -59,30 +52,23 @@ def train_loop(
           f'loop_time: {loop_time}')
 
 
-def val_loop(
-    data_loader, model, shrink_criterion, border_criterion, binary_criterion,
-    threshold
-):
+def val_loop(data_loader, model, criterion, threshold):
     loss_avg = AverageMeter()
     iou_avg = AverageMeter()
     strat_time = time.time()
     model.eval()
     tqdm_data_loader = tqdm(data_loader, total=len(data_loader), leave=False)
     with torch.no_grad():
-        for images, shrink_targets, border_targets in tqdm_data_loader:
+        for images, targets in tqdm_data_loader:
             images = images.to(DEVICE)
-            shrink_targets = shrink_targets.to(DEVICE)
-            border_targets = border_targets.to(DEVICE)
+            targets = targets.to(DEVICE)
             batch_size = len(images)
-            shrink_pred, border_pred, binary_pred = model(images)
+            preds = model(images)
 
-            shrink_loss = shrink_criterion(shrink_pred, shrink_targets)
-            border_loss = border_criterion(border_pred, border_targets)
-            binary_loss = binary_criterion(binary_pred, shrink_targets)
-
-            loss = shrink_loss + binary_loss + 10 * border_loss
+            loss = criterion(preds, targets)
             loss_avg.update(loss.item(), batch_size)
-            iou = get_iou(binary_pred, shrink_targets, threshold)
+
+            iou = get_iou(preds, targets, threshold)
             iou_avg.update(iou, batch_size)
     loop_time = sec2min(time.time() - strat_time)
     print(f'Validation, '
@@ -133,32 +119,27 @@ def main(args):
 
     train_loader, val_loader = get_loaders(config)
 
-    model = DBnet()
+    model = LinkResNet()
     if config.get('pretrain_path'):
         states = load_pretrain_model(config.get('pretrain_path'), model)
         model.load_state_dict(states)
         print('Load pretrained model')
     model.to(DEVICE)
 
-    shrink_criterion = torch.nn.BCELoss()
-    border_criterion = torch.nn.L1Loss()
-    binary_criterion = torch.nn.BCELoss()
+    criterion = FbBceLoss()
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001,
                                   weight_decay=0.01)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer=optimizer, mode='min', factor=0.5, patience=10)
+        optimizer=optimizer, mode='min', factor=0.5, patience=15)
 
     weight_limit_control = FilesLimitControl()
     best_loss = np.inf
-    val_loss = val_loop(val_loader, model, shrink_criterion, border_criterion,
-                        binary_criterion, config.get('threshold'))
+    val_loss = val_loop(val_loader, model, criterion, config.get('threshold'))
     for epoch in range(config.get('num_epochs')):
-        train_loop(train_loader, model, shrink_criterion, border_criterion,
-                   binary_criterion, optimizer, epoch, config.get('threshold'))
-        val_loss = val_loop(val_loader, model, shrink_criterion,
-                            border_criterion, binary_criterion,
-                            config.get('threshold'))
+        train_loop(train_loader, model, criterion, optimizer, epoch, 
+                   config.get('threshold'))
+        val_loss = val_loop(val_loader, model, criterion, config.get('threshold'))
         scheduler.step(val_loss)
         if val_loss < best_loss:
             best_loss = val_loss

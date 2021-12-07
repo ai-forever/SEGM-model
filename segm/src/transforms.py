@@ -135,11 +135,13 @@ class Scale:
     def __init__(self, height, width):
         self.size = (width, height)
 
-    def __call__(self, img, mask1, mask2):
+    def __call__(self, img, mask1=None, mask2=None):
         resize_img = cv2.resize(img, self.size, cv2.INTER_LINEAR)
-        resize_mask1 = cv2.resize(mask1, self.size, cv2.INTER_LINEAR)
-        resize_mask2 = cv2.resize(mask2, self.size, cv2.INTER_LINEAR)
-        return resize_img, resize_mask1, resize_mask2
+        if mask1 is not None and mask2 is not None:
+            resize_mask1 = cv2.resize(mask1, self.size, cv2.INTER_LINEAR)
+            resize_mask2 = cv2.resize(mask2, self.size, cv2.INTER_LINEAR)
+            return resize_img, resize_mask1, resize_mask2
+        return resize_img
 
 
 def img_crop(img, box):
@@ -177,10 +179,28 @@ class RandomCrop:
         return img, mask1, mask2
 
 
-def get_train_transforms(height, width, prob=0.25):
+class InferenceTransform:
+    def __init__(self, height, width):
+        self.transforms = torchvision.transforms.Compose([
+            Scale(height, width),
+            MoveChannels(to_channels_first=True),
+            Normalize(),
+            ToTensor()
+        ])
+
+    def __call__(self, images):
+        transformed_images = []
+        for image in images:
+            image = self.transforms(image)
+            transformed_images.append(image)
+        transformed_tensor = torch.stack(transformed_images, 0)
+        return transformed_tensor
+
+
+def get_train_transforms(height, width, prob=0.5):
     transforms = Compose([
         RandomTransposeAndFlip(),
-        UseWithProb(RandomCrop(rnd_crop_min=0.5, rnd_crop_max=0.9), prob),
+        UseWithProb(RandomCrop(rnd_crop_min=0.6, rnd_crop_max=0.95), prob),
         UseWithProb(RandomGaussianBlur(), prob),
         Scale(height, width)
     ])

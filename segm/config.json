@@ -1,13 +1,13 @@
 {
-    "save_dir": "/workdir/data/experiments/test",
+    "save_dir": "/workdir/data/experiments/test_2",
     "num_epochs": 500,
     "pretrain_path": "",
     "image": {
-        "width": 512,
-        "height": 512
+        "width": 768,
+        "height": 768
     },
-    "mask_shrink_ratio": 0.6,
-    "border_shrink_ratio": 0.8,
+    "mask_shrink_ratio": 0.7,
+    "border_shrink_ratio": 0.7,
     "threshold": 0.5,
     "train": {
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
