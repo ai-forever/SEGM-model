@@ -1,6 +1,6 @@
 {
-    "save_dir": "/workdir/data/experiments/test_2",
-    "num_epochs": 500,
+    "save_dir": "/workdir/data/experiments/test",
+    "num_epochs": 1000,
     "pretrain_path": "",
     "image": {
         "width": 768,
@@ -9,13 +9,13 @@
     "mask_shrink_ratio": 0.7,
     "border_shrink_ratio": 0.7,
     "threshold": 0.5,
+    "min_area": 10,
     "train": {
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
         "image_root": "/data/htr_dataset_SEGM_15102021/images/",
         "category_ids": [1, 2, 3],
         "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_train.csv",
-        "batch_size": 8,
-        "dataset_len": 10000
+        "batch_size": 8
     },
     "val": {
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_val.json",

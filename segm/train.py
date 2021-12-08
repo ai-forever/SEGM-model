@@ -50,6 +50,7 @@ def train_loop(data_loader, model, criterion, optimizer, epoch, threshold):
           f'IOU: {iou_avg.avg:.4f}, '
           f'LR: {lr:.7f}, '
           f'loop_time: {loop_time}')
+    return loss_avg.avg
 
 
 def val_loop(data_loader, model, criterion, threshold):
@@ -87,7 +88,6 @@ def get_loaders(config):
                                             config.get_image('width'))
     train_dataset = SEGMDataset(
         data=data,
-        dataset_len=config.get_train('dataset_len'),
         train_transforms=train_transforms,
         image_transforms=image_transforms,
         mask_transforms=mask_transforms
@@ -95,7 +95,8 @@ def get_loaders(config):
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=config.get_train('batch_size'),
-        num_workers=8,
+        num_workers=5,
+        shuffle=True
     )
 
     data = read_and_concat_datasets([config.get_val('processed_data_path')])
@@ -108,7 +109,7 @@ def get_loaders(config):
     val_loader = torch.utils.data.DataLoader(
         dataset=val_dataset,
         batch_size=config.get_val('batch_size'),
-        num_workers=8,
+        num_workers=5,
     )
     return train_loader, val_loader
 
@@ -131,16 +132,17 @@ def main(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001,
                                   weight_decay=0.01)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer=optimizer, mode='min', factor=0.5, patience=15)
+        optimizer=optimizer, mode='min', factor=0.5, patience=20)
 
     weight_limit_control = FilesLimitControl()
     best_loss = np.inf
     val_loss = val_loop(val_loader, model, criterion, config.get('threshold'))
     for epoch in range(config.get('num_epochs')):
-        train_loop(train_loader, model, criterion, optimizer, epoch, 
-                   config.get('threshold'))
-        val_loss = val_loop(val_loader, model, criterion, config.get('threshold'))
-        scheduler.step(val_loss)
+        train_loss = train_loop(train_loader, model, criterion, optimizer,
+                               epoch, config.get('threshold'))
+        val_loss = val_loop(val_loader, model, criterion,
+                            config.get('threshold'))
+        scheduler.step(train_loss)
         if val_loss < best_loss:
             best_loss = val_loss
             model_save_path = os.path.join(

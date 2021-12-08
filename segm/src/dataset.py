@@ -1,7 +1,6 @@
 from torch.utils.data import Dataset
 
 import cv2
-import random
 from pathlib import Path
 import pandas as pd
 import pyclipper
@@ -54,18 +53,14 @@ class SEGMDataset(Dataset):
     """
 
     def __init__(
-        self, data, dataset_len=None, train_transforms=None, image_transforms=None,
+        self, data, train_transforms=None, image_transforms=None,
         mask_transforms=None
     ):
         super().__init__()
         self.image_transforms = image_transforms
         self.mask_transforms = mask_transforms
         self.train_transforms = train_transforms
-        self.data_len = len(data)
-        if dataset_len is None:
-            self.dataset_len = self.data_len
-        else:
-            self.dataset_len = dataset_len
+        self.dataset_len = len(data)
         self.img_paths = data['file_name'].values
         self.shrink_paths = data['srink_mask_name'].values
         self.border_paths = data['border_mask_name'].values
@@ -74,8 +69,6 @@ class SEGMDataset(Dataset):
         return self.dataset_len
 
     def __getitem__(self, idx):
-        idx = random.randint(0, self.data_len-1)
-
         img_path = self.img_paths[idx]
         shrink_path = self.shrink_paths[idx]
         border_path = self.border_paths[idx]
@@ -90,7 +83,7 @@ class SEGMDataset(Dataset):
         if self.mask_transforms is not None:
             shrink_mask = self.mask_transforms(shrink_mask)
             border_mask = self.mask_transforms(border_mask)
-        return image, shrink_mask #, border_mask
+        return image, shrink_mask  # , border_mask
 
 
 def is_valid_polygon(polygon):
