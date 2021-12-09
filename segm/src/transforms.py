@@ -288,7 +288,7 @@ class InferenceTransform:
         return transformed_tensor
 
 
-def get_train_transforms(height, width, prob=0.2):
+def get_train_transforms(height, width, prob=0.4):
     transforms = Compose([
         UseWithProb(RandomTransposeAndFlip(), prob),
         UseWithProb(RandomCrop(rnd_crop_min=0.7, rnd_crop_max=0.95), prob),

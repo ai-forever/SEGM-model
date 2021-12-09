@@ -16,12 +16,13 @@ from segm.src.config import Config
 from segm.src.metrics import get_iou
 from segm.src.losses import FbBceLoss
 from segm.src.models import LinkResNet
+from segm.src.utils import val_loop
 
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def train_loop(data_loader, model, criterion, optimizer, epoch, threshold):
+def train_loop(data_loader, model, criterion, optimizer, epoch, threshold=0.5):
     loss_avg = AverageMeter()
     iou_avg = AverageMeter()
     strat_time = time.time()
@@ -47,34 +48,8 @@ def train_loop(data_loader, model, criterion, optimizer, epoch, threshold):
         lr = param_group['lr']
     print(f'\nEpoch {epoch}, '
           f'Loss: {loss_avg.avg:.5f}, '
-          f'IOU: {iou_avg.avg:.4f}, '
+          f'IOU threshold {threshold}: {iou_avg.avg:.4f}, '
           f'LR: {lr:.7f}, '
-          f'loop_time: {loop_time}')
-    return loss_avg.avg
-
-
-def val_loop(data_loader, model, criterion, threshold):
-    loss_avg = AverageMeter()
-    iou_avg = AverageMeter()
-    strat_time = time.time()
-    model.eval()
-    tqdm_data_loader = tqdm(data_loader, total=len(data_loader), leave=False)
-    with torch.no_grad():
-        for images, targets in tqdm_data_loader:
-            images = images.to(DEVICE)
-            targets = targets.to(DEVICE)
-            batch_size = len(images)
-            preds = model(images)
-
-            loss = criterion(preds, targets)
-            loss_avg.update(loss.item(), batch_size)
-
-            iou = get_iou(preds, targets, threshold)
-            iou_avg.update(iou, batch_size)
-    loop_time = sec2min(time.time() - strat_time)
-    print(f'Validation, '
-          f'Loss: {loss_avg.avg:.4f}, '
-          f'IOU: {iou_avg.avg:.4f}, '
           f'loop_time: {loop_time}')
     return loss_avg.avg
 
@@ -136,12 +111,11 @@ def main(args):
 
     weight_limit_control = FilesLimitControl()
     best_loss = np.inf
-    val_loss = val_loop(val_loader, model, criterion, config.get('threshold'))
+    val_loss = val_loop(val_loader, model, criterion, DEVICE)
     for epoch in range(config.get('num_epochs')):
         train_loss = train_loop(train_loader, model, criterion, optimizer,
-                               epoch, config.get('threshold'))
-        val_loss = val_loop(val_loader, model, criterion,
-                            config.get('threshold'))
+                                epoch)
+        val_loss = val_loop(val_loader, model, criterion, DEVICE)
         scheduler.step(train_loss)
         if val_loss < best_loss:
             best_loss = val_loss
