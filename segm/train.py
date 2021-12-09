@@ -13,7 +13,7 @@ from segm.src.transforms import (
     get_train_transforms, get_image_transforms, get_mask_transforms
 )
 from segm.src.config import Config
-from segm.src.metrics import get_iou
+from segm.src.metrics import get_iou, get_f1_score
 from segm.src.losses import FbBceLoss
 from segm.src.models import LinkResNet
 from segm.src.utils import val_loop
@@ -25,6 +25,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def train_loop(data_loader, model, criterion, optimizer, epoch, threshold=0.5):
     loss_avg = AverageMeter()
     iou_avg = AverageMeter()
+    f1_score_avg = AverageMeter()
     strat_time = time.time()
     model.train()
     tqdm_data_loader = tqdm(data_loader, total=len(data_loader), leave=False)
@@ -40,6 +41,8 @@ def train_loop(data_loader, model, criterion, optimizer, epoch, threshold=0.5):
 
         iou = get_iou(preds, targets, threshold)
         iou_avg.update(iou, batch_size)
+        f1_score = get_f1_score(preds, targets, threshold)
+        f1_score_avg.update(f1_score, batch_size)
 
         loss.backward()
         optimizer.step()
@@ -49,6 +52,7 @@ def train_loop(data_loader, model, criterion, optimizer, epoch, threshold=0.5):
     print(f'\nEpoch {epoch}, '
           f'Loss: {loss_avg.avg:.5f}, '
           f'IOU threshold {threshold}: {iou_avg.avg:.4f}, '
+          f'F1 score: {f1_score_avg.avg:.4f}, '
           f'LR: {lr:.7f}, '
           f'loop_time: {loop_time}')
     return loss_avg.avg
@@ -107,7 +111,7 @@ def main(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001,
                                   weight_decay=0.01)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer=optimizer, mode='min', factor=0.5, patience=20)
+        optimizer=optimizer, mode='min', factor=0.5, patience=25)
 
     weight_limit_control = FilesLimitControl()
     best_loss = np.inf
