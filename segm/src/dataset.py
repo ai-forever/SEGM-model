@@ -75,15 +75,16 @@ class SEGMDataset(Dataset):
         image = cv2.imread(img_path)
         shrink_mask = np.load(shrink_path)
         border_mask = np.load(border_path)
+
+        target = shrink_mask
+
         if self.train_transforms is not None:
-            image, shrink_mask, border_mask = \
-                self.train_transforms(image, shrink_mask, border_mask)
+            image, target = self.train_transforms(image, target)
         if self.image_transforms is not None:
             image = self.image_transforms(image)
         if self.mask_transforms is not None:
-            shrink_mask = self.mask_transforms(shrink_mask)
-            border_mask = self.mask_transforms(border_mask)
-        return image, shrink_mask  # , border_mask
+            target = self.mask_transforms(target)
+        return image, target
 
 
 def is_valid_polygon(polygon):

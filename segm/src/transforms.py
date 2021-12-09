@@ -43,10 +43,10 @@ class RandomGaussianBlur:
         self.max_ksize = max_ksize // 2 + 1
         self.sigma_x = sigma_x
 
-    def __call__(self, image, mask1, mask2):
+    def __call__(self, image, mask):
         kernal_size = tuple(2 * np.random.randint(0, self.max_ksize, 2) + 1)
         blured_image = cv2.GaussianBlur(image, kernal_size, self.sigma_x)
-        return blured_image, mask1, mask2
+        return blured_image, mask
 
 
 class UseWithProb:
@@ -54,10 +54,10 @@ class UseWithProb:
         self.transform = transform
         self.prob = prob
 
-    def __call__(self, image, mask1, mask2):
+    def __call__(self, image, mask):
         if random.random() < self.prob:
-            image, mask1, mask2 = self.transform(image, mask1, mask2)
-        return image, mask1, mask2
+            image, mask = self.transform(image, mask)
+        return image, mask
 
 
 class ToDType:
@@ -102,10 +102,10 @@ class Compose:
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, image, mask1, mask2):
+    def __call__(self, image, mask):
         for transform in self.transforms:
-            image, mask1, mask2 = transform(image, mask1, mask2)
-        return image, mask1, mask2
+            image, mask = transform(image, mask)
+        return image, mask
 
 
 class RandomTransposeAndFlip:
@@ -116,32 +116,28 @@ class RandomTransposeAndFlip:
         self.vertical_flip = VerticalFlip()
         self.horizontal_flip = HorizontalFlip()
 
-    def __call__(self, img, mask1, mask2):
+    def __call__(self, img, mask):
         if random.random() < 0.5:
             img = self.transpose(img)
-            mask1 = self.transpose(mask1)
-            mask2 = self.transpose(mask2)
+            mask = self.transpose(mask)
         if random.random() < 0.5:
             img = self.vertical_flip(img)
-            mask1 = self.vertical_flip(mask1)
-            mask2 = self.vertical_flip(mask2)
+            mask = self.vertical_flip(mask)
         if random.random() < 0.5:
             img = self.horizontal_flip(img)
-            mask1 = self.horizontal_flip(mask1)
-            mask2 = self.horizontal_flip(mask2)
-        return img, mask1, mask2
+            mask = self.horizontal_flip(mask)
+        return img, mask
 
 
 class Scale:
     def __init__(self, height, width):
         self.size = (width, height)
 
-    def __call__(self, img, mask1=None, mask2=None):
+    def __call__(self, img, mask=None):
         resize_img = cv2.resize(img, self.size, cv2.INTER_LINEAR)
-        if mask1 is not None and mask2 is not None:
-            resize_mask1 = cv2.resize(mask1, self.size, cv2.INTER_LINEAR)
-            resize_mask2 = cv2.resize(mask2, self.size, cv2.INTER_LINEAR)
-            return resize_img, resize_mask1, resize_mask2
+        if mask is not None:
+            resize_mask = cv2.resize(mask, self.size, cv2.INTER_LINEAR)
+            return resize_img, resize_mask
         return resize_img
 
 
@@ -168,16 +164,15 @@ class RandomCrop:
         self.factor_max = rnd_crop_max
         self.factor_min = rnd_crop_min
 
-    def __call__(self, img, mask1, mask2):
+    def __call__(self, img, mask):
         factor = random.uniform(self.factor_min, self.factor_max)
         size = (
             int(img.shape[1]*factor),
             int(img.shape[0]*factor)
         )
         img, x1, y1 = random_crop(img, size)
-        mask1 = img_crop(mask1, (x1, y1, x1 + size[0], y1 + size[1]))
-        mask2 = img_crop(mask2, (x1, y1, x1 + size[0], y1 + size[1]))
-        return img, mask1, mask2
+        mask = img_crop(mask, (x1, y1, x1 + size[0], y1 + size[1]))
+        return img, mask
 
 
 def largest_rotated_rect(w, h, angle):
@@ -253,7 +248,7 @@ class RandomRotate:
     def __init__(self, max_ang=0):
         self.max_ang = max_ang
 
-    def __call__(self, img, mask1, mask2):
+    def __call__(self, img, mask):
         h, w, _ = img.shape
 
         ang = np.random.uniform(-self.max_ang, self.max_ang)
@@ -263,11 +258,52 @@ class RandomRotate:
         w_cropped, h_cropped = largest_rotated_rect(w, h, math.radians(ang))
         img = crop_around_center(img, w_cropped, h_cropped)
 
-        mask1 = cv2.warpAffine(mask1, M, (w, h))
-        mask1 = crop_around_center(mask1, w_cropped, h_cropped)
-        mask2 = cv2.warpAffine(mask2, M, (w, h))
-        mask2 = crop_around_center(mask2, w_cropped, h_cropped)
-        return img, mask1, mask2
+        mask = cv2.warpAffine(mask, M, (w, h))
+        mask = crop_around_center(mask, w_cropped, h_cropped)
+        return img, mask
+
+
+class GridMask:
+    # https://www.kaggle.com/haqishen/gridmask
+    def __init__(self, fill_value=0, mode=0):
+        self.mode = mode
+        self.fill_value = fill_value
+
+    def create_grid_masks(self, height, width):
+        n_g = random.randint(4, 10)
+        grid_size = random.uniform(1.5, 3)
+        grid_h = height / n_g
+        grid_w = width / n_g
+        mask = np.ones(
+            (int((n_g + 1)*grid_h), int((n_g + 1)*grid_w))
+        ).astype(np.uint8)
+        for i in range(n_g + 1):
+            for j in range(n_g + 1):
+                mask[
+                     int(i*grid_h):int(i*grid_h + grid_h / grid_size),
+                     int(j*grid_w):int(j*grid_w + grid_w / grid_size)
+                ] = self.fill_value
+                if self.mode == 2:
+                    mask[
+                         int(i*grid_h + grid_h / 2):int(i*grid_h + grid_h),
+                         int(j*grid_w + grid_w / 2):int(j*grid_w + grid_w)
+                    ] = self.fill_value
+            if self.mode == 1:
+                mask = 1 - mask
+        return mask
+
+    def __call__(self, img, mask=None):
+        h, w = img.shape[:2]
+        rand_h = random.randint(0, int(h/2))
+        rand_w = random.randint(0, int(w/2))
+        grid_mask = self.create_grid_masks(h*2, w*2)
+        grid_mask = np.expand_dims(grid_mask, 2)
+        img *= grid_mask[rand_h:rand_h+h, rand_w:rand_w+w].astype(img.dtype)
+        if mask is not None:
+            grid_mask = grid_mask.squeeze()
+            mask *= grid_mask[rand_h:rand_h+h, rand_w:rand_w+w].astype(mask.dtype)
+            return img, mask
+        return img
 
 
 class InferenceTransform:
@@ -293,6 +329,7 @@ def get_train_transforms(height, width, prob=0.4):
         UseWithProb(RandomTransposeAndFlip(), prob),
         UseWithProb(RandomCrop(rnd_crop_min=0.7, rnd_crop_max=0.95), prob),
         UseWithProb(RandomGaussianBlur(), prob),
+        UseWithProb(GridMask(), prob),
         UseWithProb(RandomRotate(45), prob),
         Scale(height, width)
     ])
