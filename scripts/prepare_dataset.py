@@ -7,8 +7,8 @@ from pathlib import Path
 import pandas as pd
 import argparse
 
-from segm.src.config import Config
-from segm.src.dataset import MakeShrinkMask, MakeBorderMask
+from segm.config import Config
+from segm.dataset import MakeShrinkMask, MakeBorderMask
 
 
 def numbers2coords(list_of_numbers):
@@ -141,7 +141,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_path', type=str,
-                        default='/workdir/segm/config.json',
+                        default='/workdir/scripts/segm_config.json',
                         help='Path to config.json.')
     args = parser.parse_args()
     main(args)

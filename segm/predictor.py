@@ -3,9 +3,9 @@ import torch
 import cv2
 import numpy as np
 
-from segm.src.transforms import InferenceTransform
-from segm.src.models import LinkResNet
-from segm.src.config import Config
+from segm.transforms import InferenceTransform
+from segm.models import LinkResNet
+from segm.config import Config
 
 
 def get_bbox_and_contours_from_mask(pred, config, image_height, image_width):

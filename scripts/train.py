@@ -5,18 +5,17 @@ import numpy as np
 import torch
 import argparse
 
-from utils.utils import (
-    load_pretrain_model, FilesLimitControl, AverageMeter, sec2min
+from segm.utils import (
+    val_loop, load_pretrain_model, FilesLimitControl, AverageMeter, sec2min
 )
-from segm.src.dataset import read_and_concat_datasets, SEGMDataset
-from segm.src.transforms import (
+from segm.dataset import read_and_concat_datasets, SEGMDataset
+from segm.transforms import (
     get_train_transforms, get_image_transforms, get_mask_transforms
 )
-from segm.src.config import Config
-from segm.src.metrics import get_iou, get_f1_score
-from segm.src.losses import FbBceLoss
-from segm.src.models import LinkResNet
-from segm.src.utils import val_loop
+from segm.config import Config
+from segm.metrics import get_iou, get_f1_score
+from segm.losses import FbBceLoss
+from segm.models import LinkResNet
 
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -133,7 +132,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_path', type=str,
-                        default='/workdir/segm/config.json',
+                        default='/workdir/scripts/segm_config.json',
                         help='Path to config.json.')
     args = parser.parse_args()
 
