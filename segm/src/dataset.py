@@ -47,9 +47,14 @@ class SEGMDataset(Dataset):
 
     Args:
         data (pandas.DataFrame): Dataset with 'file_name', 'srink_mask_name'
-            and 'border_mask_name' columns with relative paths to images and
+            and 'border_mask_name' columns with paths to images and
             target masks.
-        transform (torchvision.Compose): Image transforms, default is None.
+        train_transforms (torchvision.Compose): Train images and masks
+            transforms, default is None.
+        image_transforms (torchvision.Compose): Images transforms,
+            default is None.
+        mask_transforms (torchvision.Compose): Masks transforms,
+            default is None.
     """
 
     def __init__(
@@ -88,6 +93,11 @@ class SEGMDataset(Dataset):
 
 
 def is_valid_polygon(polygon):
+    """Check if a polygon is valid. Return True if valid and False otherwise.
+
+    Args:
+        polygon (shapely.geometry.Polygon): The polygon.
+    """
     if (
         polygon.length < 1
         or polygon.area <= 0

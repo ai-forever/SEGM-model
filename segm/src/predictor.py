@@ -8,19 +8,21 @@ from segm.src.models import LinkResNet
 from segm.src.config import Config
 
 
-def segm_postprocessing(pred, config, image_height, image_width):
-    pred = pred > config.get('threshold')
-    pred = pred.cpu().numpy()
-
+def get_bbox_and_contours_from_mask(pred, config, image_height, image_width):
     contours = get_contours_from_mask(pred, config.get('min_area'))
     contours = rescale_contours(
         contours, config.get_image('height'), config.get_image('width'),
         image_height, image_width
     )
-
     bboxs = get_bbox_from_contours(contours)
-    # bboxs = rescale_bbox(bboxs, 768, 768, H, W)
     return bboxs, contours
+
+
+def mask_preprocess(pred, threshold):
+    """Mask thresholding and move to cpu and numpy."""
+    pred = pred > threshold
+    pred = pred.cpu().numpy()
+    return pred
 
 
 class SegmPredictor:
@@ -51,18 +53,17 @@ class SegmPredictor:
         for image in images:
             h, w = image.shape[:2]
             pred_data.append(
-                {
-                    'image': {'height': h, 'width': w}
-                }
+                {'image': {'height': h, 'width': w}}
             )
 
         images = self.transforms(images)
         images = images.to(self.device)
         preds = self.model(images)
+        preds = mask_preprocess(preds, self.config.get('threshold'))
 
         for idx, pred in enumerate(preds):
             pred = pred[0]  # get zero channel mask
-            bboxs, contours = segm_postprocessing(
+            bboxs, contours = get_bbox_and_contours_from_mask(
                 pred=pred,
                 config=self.config,
                 image_height=pred_data[idx]['image']['height'],
@@ -104,6 +105,7 @@ def get_bbox_from_contours(contours):
 def rescale_contours(
     contours, pred_height, pred_width, image_height, image_width
 ):
+    """Rescale contours from prediction mask shape to input image size."""
     y_ratio = image_height / pred_width
     x_ratio = image_width / pred_height
     scale = (x_ratio, y_ratio)
@@ -114,6 +116,7 @@ def rescale_contours(
 
 
 def rescale_bbox(bboxes, pred_height, pred_width, image_height, image_width):
+    """Rescale bbox from prediction mask shape to input image size."""
     y_ratio = image_height / pred_width
     x_ratio = image_width / pred_height
     scale = (x_ratio, y_ratio)
