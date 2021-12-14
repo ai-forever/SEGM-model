@@ -1,4 +1,4 @@
-# DBnet model
+# Segmentation Unet model
 
 ## Quick setup and start
 
