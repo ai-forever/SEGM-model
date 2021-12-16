@@ -23,7 +23,11 @@ You can change the [segm_config.json](scripts/segm_config.json) (or make a copy 
 Other parameters from config:
 
 - `mask_shrink_ratio` and `border_shrink_ratio` are configuration parameters for creating targets of DBNet-architecture - shrink and border masks.
-- `threshold` is the value of the model's confidence, above this value the mask becomes Ture, below - False.
+
+There are some parameters that are used only on inference:
+
+- `threshold` is the threshold of the model's confidence, above this value the mask becomes Ture, below - False. It helps to remove some false predictions of the model with low confidence.
+- `upscale_bbox` - Tuple of (x, y) upscale parameters of the predicted bbox to increase it and capture large areas of the image.
 - `min_area` - the minimum area of the polygon so that it is considered as real, true positive polygon.
 
 Dataset parameters:

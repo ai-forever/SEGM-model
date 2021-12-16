@@ -40,12 +40,12 @@ class SegmPredictor:
         )
 
     def __call__(self, images):
-        if isinstance(images, (list, tuple)):
-            one_image = False
-        elif isinstance(images, np.ndarray):
-            images = [images]
-            one_image = True
-        else:
+        """Make segmentation prediction.
+
+        Args:
+            images (list of np.ndarray): A list of images.
+        """
+        if not isinstance(images, (list, tuple)):
             raise Exception(f"Input must contain np.ndarray, "
                             f"tuple or list, found {type(images)}.")
 
@@ -53,7 +53,10 @@ class SegmPredictor:
         for image in images:
             h, w = image.shape[:2]
             pred_data.append(
-                {'image': {'height': h, 'width': w}}
+                {
+                    'image': {'height': h, 'width': w},
+                    'predictions': []
+                }
             )
 
         images = self.transforms(images)
@@ -61,21 +64,28 @@ class SegmPredictor:
         preds = self.model(images)
         preds = mask_preprocess(preds, self.config.get('threshold'))
 
-        for idx, pred in enumerate(preds):
+        for image_idx, pred in enumerate(preds):  # iterate through images
             pred = pred[0]  # get zero channel mask
             bboxs, contours = get_bbox_and_contours_from_mask(
                 pred=pred,
                 config=self.config,
-                image_height=pred_data[idx]['image']['height'],
-                image_width=pred_data[idx]['image']['width']
+                image_height=pred_data[image_idx]['image']['height'],
+                image_width=pred_data[image_idx]['image']['width']
             )
-            pred_data[idx]['bboxs'] = bboxs
-            pred_data[idx]['contours'] = contours
+            for bbox, contour in zip(bboxs, contours):
+                upscaled_bbox = upscale_bbox(
+                    bbox=bbox,
+                    upscale_x=self.config.get('upscale_bbox')[0],
+                    upscale_y=self.config.get('upscale_bbox')[1]
+                )
+                pred_data[image_idx]['predictions'].append(
+                    {
+                        'bbox': upscaled_bbox,
+                        'contour': contour
+                    }
+                )
 
-        if one_image:
-            return pred_data[0]
-        else:
-            return pred_data
+        return pred_data
 
 
 def contour2bbox(contour):
@@ -126,3 +136,18 @@ def rescale_bbox(bboxes, pred_height, pred_width, image_height, image_width):
                          for i in range(4)]
         rescaled_bboxes.append(tuple(rescaled_bbox))
     return rescaled_bboxes
+
+
+def upscale_bbox(bbox, upscale_x=1, upscale_y=1):
+    """Increase size of the bbox."""
+    height = bbox[3] - bbox[1]
+    width = bbox[2] - bbox[0]
+
+    y_change = (height * upscale_y) - height
+    x_change = (width * upscale_x) - width
+
+    x_min = max(0, bbox[0] - int(x_change/2))
+    y_min = max(0, bbox[1] - int(y_change/2))
+    x_max = bbox[2] + int(x_change/2)
+    y_max = bbox[3] + int(y_change/2)
+    return x_min, y_min, x_max, y_max

@@ -10,6 +10,7 @@
     "border_shrink_ratio": 0.7,
     "threshold": 0.8,
     "min_area": 10,
+    "upscale_bbox": [1.2, 1.2],
     "train": {
         "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
         "image_root": "/data/htr_dataset_SEGM_15102021/images/",
