@@ -43,9 +43,32 @@ class SegmPredictor:
         """Make segmentation prediction.
 
         Args:
-            images (list of np.ndarray): A list of images.
+            images (np.ndarray or list of np.ndarray): One image or list of
+                images.
+        Returns:
+            pred_data (dict or list of dicts): A result dict for one input
+                image, and a list with dicts if there is a list of input images.
+            [
+                {
+                    'image': {'height': Int, 'width': Int},
+                    'predictions': [
+                        {
+                            'bbox': bbox,
+                            'contour': contour
+                        },
+                        ...
+                    ]
+
+                },
+                ...
+            ]
         """
-        if not isinstance(images, (list, tuple)):
+        if isinstance(images, (list, tuple)):
+            one_image = False
+        elif isinstance(images, np.ndarray):
+            images = [images]
+            one_image = True
+        else:
             raise Exception(f"Input must contain np.ndarray, "
                             f"tuple or list, found {type(images)}.")
 
@@ -85,7 +108,10 @@ class SegmPredictor:
                     }
                 )
 
-        return pred_data
+        if one_image:
+            return pred_data[0]
+        else:
+            return pred_data
 
 
 def contour2bbox(contour):
