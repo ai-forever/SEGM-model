@@ -33,6 +33,7 @@ class SegmPredictor:
         self.model = LinkResNet()
         self.model.load_state_dict(torch.load(model_path))
         self.model.to(self.device)
+        self.model.eval()
 
         self.transforms = InferenceTransform(
             height=self.config.get_image('height'),
