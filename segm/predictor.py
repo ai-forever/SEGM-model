@@ -85,7 +85,8 @@ class SegmPredictor:
 
         images = self.transforms(images)
         images = images.to(self.device)
-        preds = self.model(images)
+        with torch.no_grad():
+            preds = self.model(images)
         preds = mask_preprocess(preds, self.config.get('threshold'))
 
         for image_idx, pred in enumerate(preds):  # iterate through images
