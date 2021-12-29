@@ -106,7 +106,7 @@ class SegmPredictor:
                 pred_data[image_idx]['predictions'].append(
                     {
                         'bbox': upscaled_bbox,
-                        'contour': contour
+                        'contour': [[int(i[0][0]), int(i[0][1])] for i in contour]
                     }
                 )
 
