@@ -54,8 +54,8 @@ class SegmPredictor:
                     'image': {'height': Int, 'width': Int},
                     'predictions': [
                         {
-                            'bbox': bbox,
-                            'contour': contour
+                            'bbox': bbox [x_min, y_min, x_max, y_max],
+                            'polygon': polygon [ [x1,y1], [x2,y2], ..., [xN,yN] ]
                         },
                         ...
                     ]
