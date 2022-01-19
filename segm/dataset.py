@@ -28,15 +28,12 @@ def read_and_concat_datasets(csv_paths):
     for csv_path in csv_paths:
         csv_data = pd.read_csv(csv_path)
         csv_data['dataset_name'] = csv_path
-        csv_data['file_name'] = csv_data['file_name'].apply(
+        csv_data['file_name'] = csv_data['image'].apply(
             get_full_img_path, csv_path=csv_path)
-        csv_data['srink_mask_name'] = csv_data['srink_mask_name'].apply(
-            get_full_img_path, csv_path=csv_path)
-        csv_data['border_mask_name'] = csv_data['border_mask_name'].apply(
+        csv_data['target'] = csv_data['target'].apply(
             get_full_img_path, csv_path=csv_path)
         data.append(
-            csv_data[['file_name', 'dataset_name', 'srink_mask_name',
-                      'border_mask_name']]
+            csv_data[['file_name', 'dataset_name', 'target']]
         )
     data = pd.concat(data, ignore_index=True)
     return data
@@ -46,9 +43,8 @@ class SEGMDataset(Dataset):
     """torch.Dataset for segmentation model.
 
     Args:
-        data (pandas.DataFrame): Dataset with 'file_name', 'srink_mask_name'
-            and 'border_mask_name' columns with paths to images and
-            target masks.
+        data (pandas.DataFrame): Dataset with 'file_name', 'target'
+             columns with paths to images and target masks.
         train_transforms (torchvision.Compose): Train images and masks
             transforms, default is None.
         image_transforms (torchvision.Compose): Images transforms,
@@ -67,21 +63,16 @@ class SEGMDataset(Dataset):
         self.train_transforms = train_transforms
         self.dataset_len = len(data)
         self.img_paths = data['file_name'].values
-        self.shrink_paths = data['srink_mask_name'].values
-        self.border_paths = data['border_mask_name'].values
+        self.target_paths = data['target'].values
 
     def __len__(self):
         return self.dataset_len
 
     def __getitem__(self, idx):
         img_path = self.img_paths[idx]
-        shrink_path = self.shrink_paths[idx]
-        border_path = self.border_paths[idx]
+        target_path = self.target_paths[idx]
         image = cv2.imread(img_path)
-        shrink_mask = np.load(shrink_path)
-        border_mask = np.load(border_path)
-
-        target = shrink_mask
+        target = np.load(target_path)
 
         if self.train_transforms is not None:
             image, target = self.train_transforms(image, target)

@@ -98,7 +98,8 @@ def main(args):
 
     train_loader, val_loader = get_loaders(config)
 
-    model = LinkResNet()
+    num_classes = len(config.get_classes())
+    model = LinkResNet(output_channels=num_classes)
     if config.get('pretrain_path'):
         states = load_pretrain_model(config.get('pretrain_path'), model)
         model.load_state_dict(states)

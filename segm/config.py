@@ -11,14 +11,17 @@ class Config:
     def get(self, key):
         return self.config[key]
 
+    def get_classes(self):
+        return self.config['datasets']['classes']
+
     def get_train(self, key):
-        return self.config['train'][key]
+        return self.config['datasets']['train'][key]
 
     def get_val(self, key):
-        return self.config['val'][key]
+        return self.config['datasets']['val'][key]
 
     def get_test(self, key):
-        return self.config['test'][key]
+        return self.config['datasets']['test'][key]
 
     def get_image(self, key):
         return self.config['image'][key]

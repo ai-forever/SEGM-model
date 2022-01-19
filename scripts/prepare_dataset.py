@@ -19,6 +19,7 @@ def numbers2coords(list_of_numbers):
 
 
 def get_shrink_mask(polygons, image_h, image_w, shrink_ratio):
+    """To create shrinked masks target."""
     shrink_mask_maker = MakeShrinkMask(image_h, image_w, shrink_ratio)
     for polygon in polygons:
         shrink_mask_maker.add_polygon_to_mask(polygon)
@@ -26,6 +27,7 @@ def get_shrink_mask(polygons, image_h, image_w, shrink_ratio):
 
 
 def get_border_mask(polygons, image_h, image_w, shrink_ratio):
+    """To create border masks target."""
     border_mask_maker = MakeBorderMask(image_h, image_w, shrink_ratio)
     for polygon in polygons:
         border_mask_maker.add_border_to_mask(polygon)
@@ -42,7 +44,7 @@ def polygon_resize(polygons, old_img_h, old_img_w, new_img_h, new_img_w):
     return resized_polygons
 
 
-def get_preprocess_sample(config, image_id, data, image, category_ids):
+def get_class_polygons(image_id, data, image, category_ids):
     polygons = []
     for data_ann in data['annotations']:
         if (
@@ -52,63 +54,62 @@ def get_preprocess_sample(config, image_id, data, image, category_ids):
         ):
             polygon = numbers2coords(data_ann['segmentation'][0])
             polygons.append(polygon)
+    return polygons
 
+
+def get_preprocessed_sample(config, image_id, data, image):
+    """Get image and class masks for one sample."""
     img_h, img_w = image.shape[:2]
-    new_img_w, new_img_h = config.get_image('height'), config.get_image('width')
+    new_img_h, new_img_w = \
+        config.get_image('height'), config.get_image('width')
     image = cv2.resize(image, (new_img_w, new_img_h), cv2.INTER_AREA)
-    polygons = polygon_resize(polygons, img_h, img_w, new_img_w, new_img_h)
+    # get class masks for sample
+    class_masks = []
+    for class_name, params in config.get_classes().items():
+        polygons = get_class_polygons(
+            image_id, data, image, params['annotation_classes'])
+        polygons = polygon_resize(polygons, img_h, img_w, new_img_w, new_img_h)
+        # convert polygon to mask
+        mask = polygons
+        for process_name, process_args in params['polygon2mask'].items():
+            mask = PREPROCESS_FUNC[process_name](
+                mask, new_img_h, new_img_w, **process_args)
+        class_masks.append(mask)
+    # stack class masks to target
+    target = np.stack(class_masks, -1)
+    return image, target
 
-    img_h, img_w = image.shape[:2]
-    shrink_mask = get_shrink_mask(polygons, img_h, img_w,
-                                  config.get('mask_shrink_ratio'))
-    border_mask = get_border_mask(polygons, img_h, img_w,
-                                  config.get('border_shrink_ratio'))
-    return image, shrink_mask, border_mask
 
-
-def preprocess_data(
-    config, json_path, image_root, category_ids, save_data_path
-):
-    """Create and save targets for DBnet training (shrink and border masks).
-    """
+def preprocess_data(config, json_path, image_root, save_data_path):
+    """Create and save targets for Unet training."""
     image_folder = Path('images')
-    shrink_folder = Path('shrink_targets')
-    border_folder = Path('border_targets')
-
+    target_folder = Path('targets')
     # create folders
     save_root = Path(save_data_path).parent
     image_dir = save_root / image_folder
     os.makedirs(str(image_dir), exist_ok=True)
-    shrink_dir = save_root / shrink_folder
-    os.makedirs(str(shrink_dir), exist_ok=True)
-    border_dir = save_root / border_folder
-    os.makedirs(str(border_dir), exist_ok=True)
+    target_dir = save_root / target_folder
+    os.makedirs(str(target_dir), exist_ok=True)
 
     with open(json_path, 'r') as f:
         data = json.load(f)
 
     image_paths = []
-    shrink_paths = []
-    border_paths = []
+    target_paths = []
     for data_img in tqdm(data['images']):
         img_name = data_img['file_name']
         image_id = data_img['id']
         image = cv2.imread(os.path.join(image_root, img_name))
-        image, shrink_mask, border_mask = get_preprocess_sample(
-            config, image_id, data, image, category_ids)
-        # save image
+        image, target = get_preprocessed_sample(config, image_id, data, image)
+        # save image and target
         cv2.imwrite(str(image_dir / img_name), image)
         image_paths.append(image_folder / img_name)
-        # save shrink mask
-        np.save(shrink_dir / Path(img_name).with_suffix('.npy'), shrink_mask)
-        shrink_paths.append(shrink_folder / Path(img_name).with_suffix('.npy'))
-        # save border mask
-        np.save(border_dir / Path(img_name).with_suffix('.npy'), border_mask)
-        border_paths.append(border_folder / Path(img_name).with_suffix('.npy'))
+        np.save(target_dir / Path(img_name).with_suffix('.npy'), target)
+        target_paths.append(target_folder / Path(img_name).with_suffix('.npy'))
 
     pd_data = pd.DataFrame(
-        list(zip(image_paths, shrink_paths, border_paths)),
-        columns=['file_name', 'srink_mask_name', 'border_mask_name']
+        list(zip(image_paths, target_paths)),
+        columns=['image', 'target']
     )
     pd_data.to_csv(save_data_path, index=False)
 
@@ -119,23 +120,26 @@ def main(args):
         config=config,
         json_path=config.get_train('json_path'),
         image_root=config.get_train('image_root'),
-        category_ids=config.get_train('category_ids'),
         save_data_path=config.get_train('processed_data_path')
     )
     preprocess_data(
         config=config,
         json_path=config.get_val('json_path'),
         image_root=config.get_val('image_root'),
-        category_ids=config.get_val('category_ids'),
         save_data_path=config.get_val('processed_data_path')
     )
     preprocess_data(
         config=config,
         json_path=config.get_test('json_path'),
         image_root=config.get_test('image_root'),
-        category_ids=config.get_test('category_ids'),
         save_data_path=config.get_test('processed_data_path')
     )
+
+
+PREPROCESS_FUNC = {
+    "ShrinkMaskMaker": get_shrink_mask,
+    "BorderMaskMaker": get_border_mask
+}
 
 
 if __name__ == '__main__':

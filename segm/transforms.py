@@ -19,7 +19,8 @@ class ToTensor:
 
 
 class MoveChannels:
-    """Move the channel axis to the zero position as required in pytorch."""
+    """Move the channel axis to the zero position as required in
+    pytorch (NxCxHxW)."""
 
     def __init__(self, to_channels_first=True):
         self.to_channels_first = to_channels_first
@@ -70,7 +71,7 @@ class ToDType:
 
 class ExpandDims:
     def __call__(self, image):
-        return np.expand_dims(image, 2)
+        return np.expand_dims(image, -1)
 
 
 class Flip(object):
@@ -300,7 +301,6 @@ class GridMask:
         grid_mask = np.expand_dims(grid_mask, 2)
         img *= grid_mask[rand_h:rand_h+h, rand_w:rand_w+w].astype(img.dtype)
         if mask is not None:
-            grid_mask = grid_mask.squeeze()
             mask *= grid_mask[rand_h:rand_h+h, rand_w:rand_w+w].astype(mask.dtype)
             return img, mask
         return img
@@ -347,8 +347,7 @@ def get_image_transforms():
 
 def get_mask_transforms():
     transforms = torchvision.transforms.Compose([
-        ExpandDims(),
-        MoveChannels(to_channels_first=True),
+        MoveChannels(to_channels_first=True),  # move channel axis to zero position
         ToDType(dtype=np.float32),
         ToTensor()
     ])
