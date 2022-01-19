@@ -30,7 +30,7 @@ def f1_score(y_pred, y_true, eps=1e-6):
     return f1
 
 
-def get_f1_score(preds, targets, threshold):
+def get_f1_score(preds, targets, threshold=0.5):
     f1 = []
     for p, t in zip(preds, targets):
         p_threshold = (p > threshold).float()
@@ -38,3 +38,35 @@ def get_f1_score(preds, targets, threshold):
             f1_score(p_threshold, t).item()
         )
     return np.mean(f1)
+
+
+class AverageMeter:
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+
+class IOUMetric:
+    def __init__(self, class_index, threshold=0.5):
+        self.class_index = class_index
+        self.threshold = threshold
+        self.avg_meter = AverageMeter()
+
+    def __call__(self, preds, targets):
+        preds_cls = preds[:, self.class_index]
+        targets_cls = targets[:, self.class_index]
+        iou = get_iou(preds_cls, targets_cls)
+        self.avg_meter.update(iou, len(preds))
+
+    def avg(self):
+        return self.avg_meter.avg

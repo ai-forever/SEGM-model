@@ -4,12 +4,14 @@ import math
 import time
 from tqdm import tqdm
 
-from segm.metrics import get_iou, get_f1_score
+from segm.metrics import get_iou, get_f1_score, AverageMeter, IOUMetric
 
 
-def val_loop(data_loader, model, criterion, device, threshold=0.5):
+def val_loop(data_loader, model, criterion, device, class_names):
     loss_avg = AverageMeter()
     iou_avg = AverageMeter()
+    cls2iou = {cls_name: IOUMetric(cls_idx)
+               for cls_idx, cls_name in enumerate(class_names)}
     f1_score_avg = AverageMeter()
     strat_time = time.time()
     model.eval()
@@ -24,15 +26,18 @@ def val_loop(data_loader, model, criterion, device, threshold=0.5):
             loss = criterion(preds, targets)
             loss_avg.update(loss.item(), batch_size)
 
-            iou = get_iou(preds, targets, threshold)
-            iou_avg.update(iou, batch_size)
-            f1_score = get_f1_score(preds, targets, threshold)
-            f1_score_avg.update(f1_score, batch_size)
+            iou_avg.update(get_iou(preds, targets), batch_size)
+            f1_score_avg.update(get_f1_score(preds, targets), batch_size)
+            for cls_name in class_names:
+                cls2iou[cls_name](preds, targets)
     loop_time = sec2min(time.time() - strat_time)
+    cls2iou_log = ''.join([f' IOU {cls_name}: {iou_fun.avg():.4f}'
+                           for cls_name, iou_fun in cls2iou.items()])
     print(f'Validation, '
           f'Loss: {loss_avg.avg:.4f}, '
-          f'IOU threshold {threshold}: {iou_avg.avg:.4f}, '
-          f'F1 score: {f1_score_avg.avg:.4f}, '
+          f'IOU avg: {iou_avg.avg:.4f}, '
+          f'{cls2iou_log}, '
+          f'F1 avg: {f1_score_avg.avg:.4f}, '
           f'loop_time: {loop_time}')
     return loss_avg.avg
 
@@ -41,22 +46,6 @@ def sec2min(s):
     m = math.floor(s / 60)
     s -= m * 60
     return '%dm %ds' % (m, s)
-
-
-class AverageMeter:
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
 
 
 class FilesLimitControl:
