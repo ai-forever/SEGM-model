@@ -18,30 +18,51 @@ Also you can install the necessary python packages via [requirements.txt](requir
 
 ## Configuring the model
 
-You can change the [segm_config.json](scripts/segm_config.json) (or make a copy of the file) and set the necessary training and evaluating parameters: num epochs, image size, saving path and etc.
+You can change the [segm_config.json](scripts/segm_config.json) (or make a copy of the file) and set some of the the base training and evaluating parameters: num epochs, image size, saving dir and etc.
 
-Other parameters from config:
+### Classes parameters
 
-- `mask_shrink_ratio` and `border_shrink_ratio` are configuration parameters for creating targets of DBNet-architecture - shrink and border masks.
+Parameters in the "classes"-dict are set individually for each class. The order of the sub-dicts in the "classes"-dict corresponds to the order of the mask layers in the predicted tensor. Each dictionary contains parameters for model classes to pre- and post-process stages, for example:
 
-There are some parameters that are used only on inference:
+```json
+"classes": {
+	"pupil_text": {
+		"annotation_classes": [1, 2],
+		"polygon2mask": {
+			"ShrinkMaskMaker": {"shrink_ratio": 0.5}
+		},
+		"postprocess": {
+			"threshold": 0.8,
+			"min_area": 10,
+			"upscale_bbox": [1.2, 1.2]
+		}
+	},
+	...
+}
+```
+
+- `annotation_classes` - should be a list with `category_id` indicating which polygons from annotation.json will be converted to a target mask. Polygons with these `category_id` will be united into one class.
+- `polygon2mask` - a list of function that would be applied one by one to convert polygons to mask and prepare targets. There are several functions available - to create shrink or border masks. All these functions should be listed in PREPROCESS_FUNC in [prepare_dataset.py](scripts/prepare_dataset.py).
+
+Prediction ostprocessing settings:
 
 - `threshold` is the threshold of the model's confidence, above this value the mask becomes Ture, below - False. It helps to remove some false predictions of the model with low confidence.
-- `upscale_bbox` - Tuple of (x, y) upscale parameters of the predicted bbox to increase it and capture large areas of the image.
 - `min_area` - the minimum area of the polygon so that it is considered as real, true positive polygon.
+- `upscale_bbox` - Tuple of (x, y) upscale parameters of the predicted bbox to increase it and capture large areas of the image.
 
-Dataset parameters:
+### Dataset folders
 
-```
+Individual for train / val / test:
+
+```json
 "train": {
     "json_path": "path/to/annotaion.json",
     "image_root": "path/to/folder/with/images",
-    "category_ids": list of category indexes to be trained on,
-    "processed_data_path": "path/to/save/processed/dataset.csv"
+    "processed_data_path": "path/to/save/processed/dataset.csv",
+		"batch_size": 8
 }
 ```
 - `json_path` (to the annotation.json) and `image_root` (to the folder with images) are paths to the dataset with markup in COCO format.
-- `category_ids` - should be a list with category indexes indicating which polygons from annotation will be converted to a target mask for training the model. 
 - `processed_data_path` - the saving path of the final csv file, to be produced by the prepare_dataset.py script. This csv-file will be used in train stage. This file store paths to the processed target masks.
 
 ## Input dataset description
@@ -66,7 +87,7 @@ python scripts/prepare_dataset.py --config_path path/to/the/segm_config.json
 
 The script creates a target masks for train, val and test stage. The path to the input dataset is set in the config file in `json_path` and `image_root`. The output csv file is saved to `processed_data_path` from the config.
 
-### Training
+## Training
 
 To train the model:
 
