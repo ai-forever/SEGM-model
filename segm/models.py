@@ -57,7 +57,7 @@ class DecoderBlock(nn.Module):
 
 class LinkResNet(nn.Module):
     def __init__(self, input_channels=3, output_channels=1, dropout2d_p=0.5,
-                 pretrained=True, encoder='resnet18'):
+                 pretrained=True, encoder='resnet50'):
         assert input_channels > 0
         assert encoder in ENCODERS
         super().__init__()
