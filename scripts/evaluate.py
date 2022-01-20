@@ -35,13 +35,15 @@ def main(args):
     config = Config(args.config_path)
     test_loader = get_loader(config)
 
-    model = LinkResNet()
+    class_names = config.get_classes().keys()
+    model = LinkResNet(output_channels=len(class_names))
     model.load_state_dict(torch.load(args.model_path))
     model.to(DEVICE)
 
     criterion = FbBceLoss()
 
-    val_loop(test_loader, model, criterion, DEVICE)
+
+    val_loop(test_loader, model, criterion, DEVICE, class_names)
 
 
 if __name__ == '__main__':
