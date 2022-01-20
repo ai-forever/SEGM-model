@@ -20,11 +20,11 @@ Also you can install the necessary python packages via [requirements.txt](requir
 
 You can change the [segm_config.json](scripts/segm_config.json) (or make a copy of the file) and set some of the the base training and evaluating parameters: num epochs, image size, saving dir and etc.
 
-### Classes parameters
+### Class specific parameters
 
-Parameters in the "classes"-dict are set individually for each class. The order of the sub-dicts in the "classes"-dict corresponds to the order of the mask layers in the predicted tensor. Each dictionary contains parameters for model classes to pre- and post-process stages, for example:
+Parameters in the "classes"-dict are set individually for each class of the model. The order of the sub-dicts in the "classes"-dict corresponds to the order of the mask layers in the predicted tensor. Each dictionary contains parameters for model classes to pre- and post-process stages, for example:
 
-```json
+```
 "classes": {
 	"pupil_text": {
 		"annotation_classes": [1, 2],
@@ -41,10 +41,10 @@ Parameters in the "classes"-dict are set individually for each class. The order 
 }
 ```
 
-- `annotation_classes` - should be a list with `category_id` indicating which polygons from annotation.json will be converted to a target mask. Polygons with these `category_id` will be united into one class.
-- `polygon2mask` - a list of function that would be applied one by one to convert polygons to mask and prepare targets. There are several functions available - to create shrink or border masks. All these functions should be listed in PREPROCESS_FUNC in [prepare_dataset.py](scripts/prepare_dataset.py).
+- `annotation_classes` - a list with `category_id` indicating which polygons from annotation.json will be converted to a target mask. Polygons with these `category_id` will be combined into one class mask.
+- `polygon2mask` - a list of function that would be applied one by one to convert polygons to mask and prepare target for this class. There are several functions available - to create shrink or border masks. All these functions should be listed in PREPROCESS_FUNC in [prepare_dataset.py](scripts/prepare_dataset.py).
 
-Prediction ostprocessing settings:
+Prediction postprocessing settings:
 
 - `threshold` is the threshold of the model's confidence, above this value the mask becomes Ture, below - False. It helps to remove some false predictions of the model with low confidence.
 - `min_area` - the minimum area of the polygon so that it is considered as real, true positive polygon.
@@ -54,12 +54,12 @@ Prediction ostprocessing settings:
 
 Individual for train / val / test:
 
-```json
+```
 "train": {
-    "json_path": "path/to/annotaion.json",
-    "image_root": "path/to/folder/with/images",
-    "processed_data_path": "path/to/save/processed/dataset.csv",
-		"batch_size": 8
+	"json_path": "path/to/annotaion.json",
+	"image_root": "path/to/folder/with/images",
+	"processed_data_path": "path/to/save/processed/dataset.csv",
+	"batch_size": 8
 }
 ```
 - `json_path` (to the annotation.json) and `image_root` (to the folder with images) are paths to the dataset with markup in COCO format.
