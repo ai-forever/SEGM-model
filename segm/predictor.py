@@ -8,16 +8,6 @@ from segm.models import LinkResNet
 from segm.config import Config
 
 
-def get_bbox_and_contours_from_mask(pred, config, image_height, image_width):
-    contours = get_contours_from_mask(pred, config.get('min_area'))
-    contours = rescale_contours(
-        contours, config.get_image('height'), config.get_image('width'),
-        image_height, image_width
-    )
-    bboxs = get_bbox_from_contours(contours)
-    return bboxs, contours
-
-
 def mask_preprocess(pred, threshold):
     """Mask thresholding and move to cpu and numpy."""
     pred = pred > threshold
@@ -25,12 +15,39 @@ def mask_preprocess(pred, threshold):
     return pred
 
 
+def get_bbox_and_contours_from_predictions(
+    pred, class_params, pred_height, pred_width, image_height, image_width
+):
+    """Process predictions and return contours and bbox."""
+    pred = mask_preprocess(pred, class_params['postprocess']['threshold'])
+    contours = get_contours_from_mask(
+        mask=pred,
+        min_area=class_params['postprocess']['min_area']
+    )
+    contours = rescale_contours(
+        contours=contours,
+        pred_height=pred_height,
+        pred_width=pred_width,
+        image_height=image_height,
+        image_width=image_width
+    )
+    bboxes = get_bbox_from_contours(contours)
+    bboxes = upscale_bboxes(
+        bboxes=bboxes,
+        upscale_x=class_params['postprocess']['upscale_bbox'][0],
+        upscale_y=class_params['postprocess']['upscale_bbox'][1]
+    )
+    contours = reduce_contours_dims(contours)
+    return bboxes, contours
+
+
 class SegmPredictor:
     def __init__(self, model_path, config_path, device='cuda'):
         self.config = Config(config_path)
         self.device = torch.device(device)
+        self.cls2params = self.config.get_classes()
         # load model
-        self.model = LinkResNet()
+        self.model = LinkResNet(output_channels=len(self.cls2params))
         self.model.load_state_dict(torch.load(model_path))
         self.model.to(self.device)
         self.model.eval()
@@ -73,42 +90,38 @@ class SegmPredictor:
             raise Exception(f"Input must contain np.ndarray, "
                             f"tuple or list, found {type(images)}.")
 
-        pred_data = []
-        for image in images:
-            h, w = image.shape[:2]
-            pred_data.append(
-                {
-                    'image': {'height': h, 'width': w},
-                    'predictions': []
-                }
-            )
-
-        images = self.transforms(images)
-        images = images.to(self.device)
+        transformed_images = self.transforms(images)
+        transformed_images = transformed_images.to(self.device)
         with torch.no_grad():
-            preds = self.model(images)
-        preds = mask_preprocess(preds, self.config.get('threshold'))
+            preds = self.model(transformed_images)
 
-        for image_idx, pred in enumerate(preds):  # iterate through images
-            pred = pred[0]  # get zero channel mask
-            bboxs, contours = get_bbox_and_contours_from_mask(
-                pred=pred,
-                config=self.config,
-                image_height=pred_data[image_idx]['image']['height'],
-                image_width=pred_data[image_idx]['image']['width']
-            )
-            for bbox, contour in zip(bboxs, contours):
-                upscaled_bbox = upscale_bbox(
-                    bbox=bbox,
-                    upscale_x=self.config.get('upscale_bbox')[0],
-                    upscale_y=self.config.get('upscale_bbox')[1]
+        pred_data = []
+        for image, pred in zip(images, preds):  # iterate through images
+            img_h, img_w = image.shape[:2]
+            pred_img = {
+                'image': {'height': img_h, 'width': img_w},
+                'predictions': []
+            }
+            for cls_idx, cls_name in enumerate(self.cls2params):  # iterate through classes
+                # prediction processing
+                bboxes, contours = get_bbox_and_contours_from_predictions(
+                    pred=pred[cls_idx],
+                    class_params=self.cls2params[cls_name],
+                    pred_height=self.config.get_image('height'),
+                    pred_width=self.config.get_image('width'),
+                    image_height=img_h,
+                    image_width=img_w
                 )
-                pred_data[image_idx]['predictions'].append(
-                    {
-                        'bbox': upscaled_bbox,
-                        'polygon': [[int(i[0][0]), int(i[0][1])] for i in contour]
-                    }
-                )
+                # put predictions in output json
+                for bbox, contour in zip(bboxes, contours):
+                    pred_img['predictions'].append(
+                        {
+                            'bbox': bbox,
+                            'polygon': contour,
+                            'class_name': cls_name
+                        }
+                    )
+        pred_data.append(pred_img)
 
         if one_image:
             return pred_data[0]
@@ -144,8 +157,8 @@ def rescale_contours(
     contours, pred_height, pred_width, image_height, image_width
 ):
     """Rescale contours from prediction mask shape to input image size."""
-    y_ratio = image_height / pred_width
-    x_ratio = image_width / pred_height
+    y_ratio = image_height / pred_height
+    x_ratio = image_width / pred_width
     scale = (x_ratio, y_ratio)
     for contour in contours:
         for i in range(2):
@@ -155,8 +168,8 @@ def rescale_contours(
 
 def rescale_bbox(bboxes, pred_height, pred_width, image_height, image_width):
     """Rescale bbox from prediction mask shape to input image size."""
-    y_ratio = image_height / pred_width
-    x_ratio = image_width / pred_height
+    y_ratio = image_height / pred_height
+    x_ratio = image_width / pred_width
     scale = (x_ratio, y_ratio)
     rescaled_bboxes = []
     for bbox in bboxes:
@@ -166,16 +179,25 @@ def rescale_bbox(bboxes, pred_height, pred_width, image_height, image_width):
     return rescaled_bboxes
 
 
-def upscale_bbox(bbox, upscale_x=1, upscale_y=1):
+def reduce_contours_dims(contours):
+    reduced_contours = []
+    for contour in contours:
+        contour = [[int(i[0][0]), int(i[0][1])] for i in contour]
+        reduced_contours.append(contour)
+    return reduced_contours
+
+
+def upscale_bboxes(bboxes, upscale_x=1, upscale_y=1):
     """Increase size of the bbox."""
-    height = bbox[3] - bbox[1]
-    width = bbox[2] - bbox[0]
-
-    y_change = (height * upscale_y) - height
-    x_change = (width * upscale_x) - width
-
-    x_min = max(0, bbox[0] - int(x_change/2))
-    y_min = max(0, bbox[1] - int(y_change/2))
-    x_max = bbox[2] + int(x_change/2)
-    y_max = bbox[3] + int(y_change/2)
-    return x_min, y_min, x_max, y_max
+    upscaled_bboxes = []
+    for bbox in bboxes:
+        height = bbox[3] - bbox[1]
+        width = bbox[2] - bbox[0]
+        y_change = (height * upscale_y) - height
+        x_change = (width * upscale_x) - width
+        x_min = max(0, bbox[0] - int(x_change/2))
+        y_min = max(0, bbox[1] - int(y_change/2))
+        x_max = bbox[2] + int(x_change/2)
+        y_max = bbox[3] + int(y_change/2)
+        upscaled_bboxes.append([x_min, y_min, x_max, y_max])
+    return upscaled_bboxes
