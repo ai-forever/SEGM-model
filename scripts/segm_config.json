@@ -16,7 +16,7 @@
                 "postprocess": {
                     "threshold": 0.8,
                     "min_area": 10,
-                    "upscale_bbox": [1.2, 1.2]
+                    "upscale_bbox": [1.4, 2.3]
                 }
             },
             "shrinked_comments": {
@@ -25,9 +25,9 @@
                     "ShrinkMaskMaker": {"shrink_ratio": 0.5}
                 },
                 "postprocess": {
-                    "threshold": 0.8,
+                    "threshold": 0.5,
                     "min_area": 10,
-                    "upscale_bbox": [1.2, 1.2]
+                    "upscale_bbox": [1.4, 2.3]
                 }
             }
         },
