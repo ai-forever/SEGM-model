@@ -45,6 +45,8 @@ def polygon_resize(polygons, old_img_h, old_img_w, new_img_h, new_img_w):
 
 
 def get_class_polygons(image_id, data, image, category_ids):
+    """Get polygons from annotation for a specific image and category.
+    """
     polygons = []
     for data_ann in data['annotations']:
         if (
@@ -57,17 +59,29 @@ def get_class_polygons(image_id, data, image, category_ids):
     return polygons
 
 
+def class_names2id(class_names, data):
+    """Match class names to categoty ids using annotation in COCO format."""
+    category_ids = []
+    for class_name in class_names:
+        for category_info in data['categories']:
+            if category_info['name'] == class_name:
+                category_ids.append(category_info['id'])
+    return category_ids
+
+
 def get_preprocessed_sample(config, image_id, data, image):
-    """Get image and class masks for one sample."""
+    """Get image and class masks for one sample.
+    """
     img_h, img_w = image.shape[:2]
     new_img_h, new_img_w = \
         config.get_image('height'), config.get_image('width')
     image = cv2.resize(image, (new_img_w, new_img_h), cv2.INTER_AREA)
+
     # get class masks for sample
     class_masks = []
     for class_name, params in config.get_classes().items():
-        polygons = get_class_polygons(
-            image_id, data, image, params['annotation_classes'])
+        categories_ids = class_names2id(params['annotation_classes'], data)
+        polygons = get_class_polygons(image_id, data, image, categories_ids)
         polygons = polygon_resize(polygons, img_h, img_w, new_img_w, new_img_h)
         # convert polygon to mask
         mask = polygons
@@ -75,6 +89,7 @@ def get_preprocessed_sample(config, image_id, data, image):
             mask = PREPROCESS_FUNC[process_name](
                 mask, new_img_h, new_img_w, **process_args)
         class_masks.append(mask)
+
     # stack class masks to target
     target = np.stack(class_masks, -1)
     return image, target

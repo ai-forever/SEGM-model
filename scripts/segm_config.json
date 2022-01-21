@@ -9,7 +9,7 @@
     "datasets": {
         "classes": {
             "shrinked_pupil_text": {
-                "annotation_classes": [1],
+                "annotation_classes": ["pupil_text"],
                 "polygon2mask": {
                     "ShrinkMaskMaker": {"shrink_ratio": 0.5}
                 },
@@ -20,7 +20,7 @@
                 }
             },
             "shrinked_comments": {
-                "annotation_classes": [2, 3],
+                "annotation_classes": ["pupil_comment", "teacher_comment"],
                 "polygon2mask": {
                     "ShrinkMaskMaker": {"shrink_ratio": 0.5}
                 },

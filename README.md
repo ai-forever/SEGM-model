@@ -26,8 +26,8 @@ Parameters in the "classes"-dict are set individually for each class of the mode
 
 ```
 "classes": {
-	"pupil_text": {
-		"annotation_classes": [1, 2],
+	"pupil_and_teacher_comments": {
+		"annotation_classes": ["pupil_comment", "teacher_comment"],
 		"polygon2mask": {
 			"ShrinkMaskMaker": {"shrink_ratio": 0.5}
 		},
@@ -41,7 +41,7 @@ Parameters in the "classes"-dict are set individually for each class of the mode
 }
 ```
 
-- `annotation_classes` - a list with `category_id` indicating which polygons from annotation.json will be converted to a target mask. Polygons with these `category_id` will be combined into one class mask.
+- `annotation_classes` - a list with class names from `annotation["categories"]` (’name’ key) indicating which polygons from annotation.json will be converted to a target mask. Polygons with these `class names` will be combined into one class mask.
 - `polygon2mask` - a list of function that would be applied one by one to convert polygons to mask and prepare target for this class. There are several functions available - to create shrink or border masks. All these functions should be listed in PREPROCESS_FUNC in [prepare_dataset.py](scripts/prepare_dataset.py).
 
 Prediction postprocessing settings:
@@ -69,6 +69,7 @@ Individual for train / val / test:
 
 The input dataset should be in COCO format. The `annotation.json` should have the following dictionaries:
 
+- `annotation["categories"]` - a list of dicts with a categories info (categotiy names and indexes).
 - `annotation["images"]` - a list of dictionaries with a description of images, each dictionary must contain fields:
   - `file_name` - name of the image file.
   - `id` for image id.
