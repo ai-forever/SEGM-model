@@ -33,8 +33,7 @@ Parameters in the "classes"-dict are set individually for each class of the mode
 		},
 		"postprocess": {
 			"threshold": 0.8,
-			"min_area": 10,
-			"upscale_bbox": [1.2, 1.2]
+			"min_area": 10
 		}
 	},
 	...
@@ -48,7 +47,6 @@ Prediction postprocessing settings:
 
 - `threshold` is the threshold of the model's confidence, above this value the mask becomes Ture, below - False. It helps to remove some false predictions of the model with low confidence.
 - `min_area` - the minimum area of the polygon so that it is considered as real, true positive polygon.
-- `upscale_bbox` - Tuple of (x, y) upscale parameters of the predicted bbox to increase it and capture large areas of the image.
 
 ### Dataset folders
 

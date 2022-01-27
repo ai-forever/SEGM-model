@@ -15,8 +15,7 @@
                 },
                 "postprocess": {
                     "threshold": 0.8,
-                    "min_area": 10,
-                    "upscale_bbox": [1.4, 2.3]
+                    "min_area": 10
                 }
             },
             "shrinked_comments": {
@@ -26,8 +25,7 @@
                 },
                 "postprocess": {
                     "threshold": 0.8,
-                    "min_area": 10,
-                    "upscale_bbox": [1.4, 2.3]
+                    "min_area": 10
                 }
             }
         },
