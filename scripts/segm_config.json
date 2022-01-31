@@ -6,46 +6,66 @@
         "width": 768,
         "height": 768
     },
-    "datasets": {
-        "classes": {
-            "shrinked_pupil_text": {
-                "annotation_classes": ["pupil_text"],
-                "polygon2mask": {
-                    "ShrinkMaskMaker": {"shrink_ratio": 0.5}
-                },
-                "postprocess": {
-                    "threshold": 0.8,
-                    "min_area": 10
-                }
+    "classes": {
+        "shrinked_pupil_text": {
+            "annotation_classes": ["pupil_text"],
+            "polygon2mask": {
+                "ShrinkMaskMaker": {"shrink_ratio": 0.5}
             },
-            "shrinked_comments": {
-                "annotation_classes": ["pupil_comment", "teacher_comment"],
-                "polygon2mask": {
-                    "ShrinkMaskMaker": {"shrink_ratio": 0.5}
-                },
-                "postprocess": {
-                    "threshold": 0.8,
-                    "min_area": 10
-                }
+            "postprocess": {
+                "threshold": 0.8,
+                "min_area": 10
             }
         },
-        "train": {
-            "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
-            "image_root": "/data/htr_dataset_SEGM_15102021/images/",
-            "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_train.csv",
-            "batch_size": 8
-        },
-        "val": {
-            "json_path": "/data/htr_dataset_SEGM_15102021/annotations_val.json",
-            "image_root": "/data/htr_dataset_SEGM_15102021/images/",
-            "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_val.csv",
-            "batch_size": 8
-        },
-        "test": {
-            "json_path": "/data/htr_dataset_SEGM_15102021/annotations_test.json",
-            "image_root": "/data/htr_dataset_SEGM_15102021/images/",
-            "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_test.csv",
-            "batch_size": 8
+        "shrinked_comments": {
+            "annotation_classes": ["pupil_comment", "teacher_comment"],
+            "polygon2mask": {
+                "ShrinkMaskMaker": {"shrink_ratio": 0.5}
+            },
+            "postprocess": {
+                "threshold": 0.8,
+                "min_area": 10
+            }
         }
+    },
+    "train": {
+        "datasets": [
+            {
+                "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
+                "image_root": "/data/htr_dataset_SEGM_15102021/images/",
+                "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_train.csv"
+            },
+            {
+                "json_path": "/data/htr_dataset_SEGM_26012022/annotations_train.json",
+                "image_root": "/data/htr_dataset_SEGM_26012022/images/",
+                "processed_data_path": "data/htr_dataset_SEGM_26012022/annotations_train.csv"
+            }
+        ],
+        "batch_size": 8
+    },
+    "val": {
+        "datasets": [
+            {
+                "json_path": "/data/htr_dataset_SEGM_15102021/annotations_val.json",
+                "image_root": "/data/htr_dataset_SEGM_15102021/images/",
+                "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_val.csv"
+            },
+            {
+                "json_path": "/data/htr_dataset_SEGM_26012022/annotations_val.json",
+                "image_root": "/data/htr_dataset_SEGM_26012022/images/",
+                "processed_data_path": "data/htr_dataset_SEGM_26012022/annotations_val.csv"
+            }
+        ],
+        "batch_size": 8
+    },
+    "test": {
+        "datasets": [
+            {
+                "json_path": "/data/htr_dataset_SEGM_15102021/annotations_test.json",
+                "image_root": "/data/htr_dataset_SEGM_15102021/images/",
+                "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_test.csv"
+            }
+        ],
+        "batch_size": 8
     }
 }

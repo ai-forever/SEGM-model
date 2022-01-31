@@ -66,7 +66,10 @@ def get_loaders(config):
     mask_transforms = get_mask_transforms()
     image_transforms = get_image_transforms()
 
-    data = read_and_concat_datasets([config.get_train('processed_data_path')])
+    processed_data_paths = []
+    for dataset in config.get_train('datasets'):
+        processed_data_paths.append(dataset['processed_data_path'])
+    data = read_and_concat_datasets(processed_data_paths)
     train_transforms = get_train_transforms(config.get_image('height'),
                                             config.get_image('width'))
     train_dataset = SEGMDataset(
@@ -82,7 +85,10 @@ def get_loaders(config):
         shuffle=True
     )
 
-    data = read_and_concat_datasets([config.get_val('processed_data_path')])
+    processed_data_paths = []
+    for dataset in config.get_val('datasets'):
+        processed_data_paths.append(dataset['processed_data_path'])
+    data = read_and_concat_datasets(processed_data_paths)
     val_dataset = SEGMDataset(
         data=data,
         train_transforms=None,

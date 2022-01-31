@@ -131,24 +131,27 @@ def preprocess_data(config, json_path, image_root, save_data_path):
 
 def main(args):
     config = Config(args.config_path)
-    preprocess_data(
-        config=config,
-        json_path=config.get_train('json_path'),
-        image_root=config.get_train('image_root'),
-        save_data_path=config.get_train('processed_data_path')
-    )
-    preprocess_data(
-        config=config,
-        json_path=config.get_val('json_path'),
-        image_root=config.get_val('image_root'),
-        save_data_path=config.get_val('processed_data_path')
-    )
-    preprocess_data(
-        config=config,
-        json_path=config.get_test('json_path'),
-        image_root=config.get_test('image_root'),
-        save_data_path=config.get_test('processed_data_path')
-    )
+    for dataset in config.get_train('datasets'):
+        preprocess_data(
+            config=config,
+            json_path=dataset['json_path'],
+            image_root=dataset['image_root'],
+            save_data_path=dataset['processed_data_path']
+        )
+    for dataset in config.get_val('datasets'):
+        preprocess_data(
+            config=config,
+            json_path=dataset['json_path'],
+            image_root=dataset['image_root'],
+            save_data_path=dataset['processed_data_path']
+        )
+    for dataset in config.get_test('datasets'):
+        preprocess_data(
+            config=config,
+            json_path=dataset['json_path'],
+            image_root=dataset['image_root'],
+            save_data_path=dataset['processed_data_path']
+        )
 
 
 PREPROCESS_FUNC = {

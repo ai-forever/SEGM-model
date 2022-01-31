@@ -16,7 +16,10 @@ def get_loader(config):
     mask_transforms = get_mask_transforms()
     image_transforms = get_image_transforms()
 
-    data = read_and_concat_datasets([config.get_test('processed_data_path')])
+    processed_data_paths = []
+    for dataset in config.get_test('datasets'):
+        processed_data_paths.append(dataset['processed_data_path'])
+    data = read_and_concat_datasets(processed_data_paths)
     test_dataset = SEGMDataset(
         data=data,
         train_transforms=None,
