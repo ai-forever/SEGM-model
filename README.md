@@ -22,7 +22,7 @@ You can change the [segm_config.json](scripts/segm_config.json) (or make a copy 
 
 ### Class specific parameters
 
-Parameters in the "classes"-dict are set individually for each class of the model. The order of the sub-dicts in the "classes"-dict corresponds to the order of the mask layers in the predicted tensor. Each dictionary contains parameters for model classes to pre- and post-process stages, for example:
+Parameters in the classes-dict are set individually for each class of the model. The order of the sub-dicts in the classes-dict corresponds to the order of the mask layers in the predicted tensor. Each dictionary contains parameters for model classes to pre- and post-process stages, for example:
 
 ```
 "classes": {
@@ -54,12 +54,19 @@ Individual for train / val / test:
 
 ```
 "train": {
-	"json_path": "path/to/annotaion.json",
-	"image_root": "path/to/folder/with/images",
-	"processed_data_path": "path/to/save/processed/dataset.csv",
-	"batch_size": 8
+    "datasets": [
+        {
+            "json_path": "path/to/annotaion.json",
+            "image_root": "path/to/folder/with/images",
+            "processed_data_path": "path/to/save/processed/dataset.csv"
+        },
+        ...
+    ],
+    "batch_size": 8
 }
 ```
+In datasets-dict, you can specify paths to multiple datasets for training and testing.
+
 - `json_path` (to the annotation.json) and `image_root` (to the folder with images) are paths to the dataset with markup in COCO format.
 - `processed_data_path` - the saving path of the final csv file, to be produced by the prepare_dataset.py script. This csv-file will be used in train stage. This file store paths to the processed target masks.
 

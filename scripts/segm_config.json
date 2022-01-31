@@ -64,6 +64,11 @@
                 "json_path": "/data/htr_dataset_SEGM_15102021/annotations_test.json",
                 "image_root": "/data/htr_dataset_SEGM_15102021/images/",
                 "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_test.csv"
+            },
+            {
+                "json_path": "/data/htr_dataset_SEGM_26012022/annotations_test.json",
+                "image_root": "/data/htr_dataset_SEGM_26012022/images/",
+                "processed_data_path": "data/htr_dataset_SEGM_26012022/annotations_test.csv"
             }
         ],
         "batch_size": 8
