@@ -114,7 +114,7 @@ class SegmPredictor:
                             'class_name': cls_name
                         }
                     )
-        pred_data.append(pred_img)
+            pred_data.append(pred_img)
 
         if one_image:
             return pred_data[0]
