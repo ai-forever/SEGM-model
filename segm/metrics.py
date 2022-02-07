@@ -5,7 +5,7 @@ def iou_pytorch(y_pred, y_true, eps=1e-6):
     intersection = (y_pred * y_true).sum()
     union = (y_pred + y_true).sum()
 
-    return intersection / (union - intersection + eps)
+    return intersection / (union + eps)
 
 
 def get_iou(preds, targets, threshold=0.5):
