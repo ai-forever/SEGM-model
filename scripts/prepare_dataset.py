@@ -26,6 +26,40 @@ def get_shrink_mask(polygons, image_h, image_w, shrink_ratio):
     return shrink_mask_maker.get_shrink_mask()
 
 
+def polyline2polygon(polyline, thickness=10):
+    """Transform the polyline into a polygon by adding new points to create
+    a thin polygon."""
+    polygon = []
+    for point in polyline:
+        polygon.append([point[0], point[1]-int(thickness/2)])
+    for point in reversed(polyline):
+        polygon.append([point[0], point[1]+int(thickness/2)])
+    return np.array(polygon)
+
+
+def scale_contour(cnt, scale):
+    M = cv2.moments(cnt)
+    cx = int(M['m10']/M['m00'])
+    cy = int(M['m01']/M['m00'])
+
+    cnt_norm = cnt - [cx, cy]
+    cnt_scaled = cnt_norm * scale
+    cnt_scaled = cnt_scaled + [cx, cy]
+    cnt_scaled = cnt_scaled.astype(np.int32)
+
+    return cnt_scaled
+
+
+def get_polyline_mask(polygons, image_h, image_w, thickness=10, scale=1):
+    mask = np.zeros((image_h, image_w), dtype=np.uint8)
+    for polygon in polygons:
+        polygon = polyline2polygon(polygon, thickness)
+        pts = np.array(np.array(polygon), dtype=np.int32)
+        pts = scale_contour(pts, scale)
+        cv2.fillPoly(mask, [pts], 1)
+    return mask
+
+
 def get_border_mask(polygons, image_h, image_w, shrink_ratio):
     """To create border masks target."""
     border_mask_maker = MakeBorderMask(image_h, image_w, shrink_ratio)
@@ -156,6 +190,7 @@ def main(args):
 
 PREPROCESS_FUNC = {
     "ShrinkMaskMaker": get_shrink_mask,
+    "PolylineToMask": get_polyline_mask,
     "BorderMaskMaker": get_border_mask
 }
 
