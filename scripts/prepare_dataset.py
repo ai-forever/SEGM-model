@@ -31,9 +31,9 @@ def polyline2polygon(polyline, thickness=10):
     a thin polygon."""
     polygon = []
     for point in polyline:
-        polygon.append([point[0], point[1]-int(thickness/2)])
+        polygon.append([point[0]-int(thickness/2), point[1]-int(thickness/2)])
     for point in reversed(polyline):
-        polygon.append([point[0], point[1]+int(thickness/2)])
+        polygon.append([point[0]+int(thickness/2), point[1]+int(thickness/2)])
     return np.array(polygon)
 
 
@@ -116,7 +116,7 @@ def get_preprocessed_sample(config, image_id, data, image):
     for class_name, params in config.get_classes().items():
         categories_ids = class_names2id(params['annotation_classes'], data)
         polygons = get_class_polygons(image_id, data, image, categories_ids)
-        polygons = polygon_resize(polygons, img_h, img_w, new_img_w, new_img_h)
+        polygons = polygon_resize(polygons, img_h, img_w, new_img_h, new_img_w)
         # convert polygon to mask
         mask = polygons
         for process_name, process_args in params['polygon2mask'].items():
