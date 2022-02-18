@@ -3,7 +3,7 @@
     "num_epochs": 1000,
     "pretrain_path": "",
     "image": {
-        "width": 768,
+        "width": 1024,
         "height": 768
     },
     "classes": {
@@ -31,46 +31,46 @@
     "train": {
         "datasets": [
             {
-                "json_path": "/data/htr_dataset_SEGM_15102021/annotations_train.json",
-                "image_root": "/data/htr_dataset_SEGM_15102021/images/",
-                "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_train.csv"
+                "json_path": "/home/jovyan/data/htr_dataset_SEGM_15102021/annotations_train.json",
+                "image_root": "/home/jovyan/data/htr_dataset_SEGM_15102021/images/",
+                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_15102021/annotations_train.csv"
             },
             {
-                "json_path": "/data/htr_dataset_SEGM_26012022/annotations_train.json",
-                "image_root": "/data/htr_dataset_SEGM_26012022/images/",
-                "processed_data_path": "data/htr_dataset_SEGM_26012022/annotations_train.csv"
+                "json_path": "/home/jovyan/data/htr_dataset_SEGM_26012022/annotations_train.json",
+                "image_root": "/home/jovyan/data/htr_dataset_SEGM_26012022/images/",
+                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_26012022/annotations_train.csv"
             }
         ],
-        "batch_size": 8
+        "batch_size": 10
     },
     "val": {
         "datasets": [
             {
-                "json_path": "/data/htr_dataset_SEGM_15102021/annotations_val.json",
-                "image_root": "/data/htr_dataset_SEGM_15102021/images/",
-                "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_val.csv"
+                "json_path": "/home/jovyan/data/htr_dataset_SEGM_15102021/annotations_val.json",
+                "image_root": "/home/jovyan/data/htr_dataset_SEGM_15102021/images/",
+                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_15102021/annotations_val.csv"
             },
             {
-                "json_path": "/data/htr_dataset_SEGM_26012022/annotations_val.json",
-                "image_root": "/data/htr_dataset_SEGM_26012022/images/",
-                "processed_data_path": "data/htr_dataset_SEGM_26012022/annotations_val.csv"
+                "json_path": "/home/jovyan/data/htr_dataset_SEGM_26012022/annotations_val.json",
+                "image_root": "/home/jovyan/data/htr_dataset_SEGM_26012022/images/",
+                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_26012022/annotations_val.csv"
             }
         ],
-        "batch_size": 8
+        "batch_size": 10
     },
     "test": {
         "datasets": [
             {
-                "json_path": "/data/htr_dataset_SEGM_15102021/annotations_test.json",
-                "image_root": "/data/htr_dataset_SEGM_15102021/images/",
-                "processed_data_path": "data/htr_dataset_SEGM_15102021/annotations_test.csv"
+                "json_path": "/home/jovyan/data/htr_dataset_SEGM_15102021/annotations_test.json",
+                "image_root": "/home/jovyan/data/htr_dataset_SEGM_15102021/images/",
+                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_15102021/annotations_test.csv"
             },
             {
-                "json_path": "/data/htr_dataset_SEGM_26012022/annotations_test.json",
-                "image_root": "/data/htr_dataset_SEGM_26012022/images/",
-                "processed_data_path": "data/htr_dataset_SEGM_26012022/annotations_test.csv"
+                "json_path": "/home/jovyan/data/htr_dataset_SEGM_26012022/annotations_test.json",
+                "image_root": "/home/jovyan/data/htr_dataset_SEGM_26012022/images/",
+                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_26012022/annotations_test.csv"
             }
         ],
-        "batch_size": 8
+        "batch_size": 10
     }
 }
