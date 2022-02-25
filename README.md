@@ -41,7 +41,7 @@ Parameters in the classes-dict are set individually for each class of the model.
 ```
 
 - `annotation_classes` - a list with class names from `annotation["categories"]` (’name’ key) indicating which polygons from annotation.json will be converted to a target mask. Polygons with these `class names` will be combined into one class mask.
-- `polygon2mask` - a list of function that would be applied one by one to convert polygons to mask and prepare target for this class. There are several functions available - to create shrink or border masks. All these functions should be listed in PREPROCESS_FUNC in [prepare_dataset.py](scripts/prepare_dataset.py).
+- `polygon2mask` - a list of function that would be applied one by one to convert polygons to mask and prepare target for this class. There are several functions available - to create regular or shrink masks. To add a new function to the process, you need to add it to the PREPROCESS_FUNC dictionary in [prepare_dataset.py](scripts/prepare_dataset.py) and also specify it in the polygon2mask-dict in the config.
 
 Prediction postprocessing settings:
 
