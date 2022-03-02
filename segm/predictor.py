@@ -41,7 +41,10 @@ class SegmPredictor:
         self.device = torch.device(device)
         self.cls2params = self.config.get_classes()
         # load model
-        self.model = LinkResNet(output_channels=len(self.cls2params))
+        self.model = LinkResNet(
+            output_channels=len(self.cls2params),
+            pretrained=False
+        )
         self.model.load_state_dict(torch.load(model_path))
         self.model.to(self.device)
         self.model.eval()
