@@ -5,6 +5,7 @@ import time
 from tqdm import tqdm
 
 from segm.metrics import get_iou, get_f1_score, AverageMeter, IOUMetric
+from segm.predictor import predict
 
 
 def val_loop(data_loader, model, criterion, device, class_names):
@@ -14,22 +15,18 @@ def val_loop(data_loader, model, criterion, device, class_names):
                for cls_idx, cls_name in enumerate(class_names)}
     f1_score_avg = AverageMeter()
     strat_time = time.time()
-    model.eval()
     tqdm_data_loader = tqdm(data_loader, total=len(data_loader), leave=False)
-    with torch.no_grad():
-        for images, targets in tqdm_data_loader:
-            images = images.to(device)
-            targets = targets.to(device)
-            batch_size = len(images)
-            preds = model(images)
+    for images, targets in tqdm_data_loader:
+        preds, targets = predict(images, model, device, targets)
+        batch_size = len(images)
 
-            loss = criterion(preds, targets)
-            loss_avg.update(loss.item(), batch_size)
+        loss = criterion(preds, targets)
+        loss_avg.update(loss.item(), batch_size)
 
-            iou_avg.update(get_iou(preds, targets), batch_size)
-            f1_score_avg.update(get_f1_score(preds, targets), batch_size)
-            for cls_name in class_names:
-                cls2iou[cls_name](preds, targets)
+        iou_avg.update(get_iou(preds, targets), batch_size)
+        f1_score_avg.update(get_f1_score(preds, targets), batch_size)
+        for cls_name in class_names:
+            cls2iou[cls_name](preds, targets)
     loop_time = sec2min(time.time() - strat_time)
     cls2iou_log = ''.join([f' IOU {cls_name}: {iou_fun.avg():.4f}'
                            for cls_name, iou_fun in cls2iou.items()])

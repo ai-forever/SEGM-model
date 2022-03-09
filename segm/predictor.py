@@ -8,6 +8,25 @@ from segm.models import LinkResNet
 from segm.config import Config
 
 
+def predict(images, model, device, targets=None):
+    """Make model prediction.
+    Args:
+        images (torch.Tensor): Batch with tensor images.
+        model (ocr.src.models.CRNN): OCR model.
+        device (torch.device): Torch device.
+        targets (torch.Tensor): Batch with tensor masks. By default is None.
+    """
+    model.eval()
+    images = images.to(device)
+    with torch.no_grad():
+        output = model(images)
+
+    if targets is not None:
+        targets = targets.to(device)
+        return output, targets
+    return output
+
+
 def mask_preprocess(pred, threshold):
     """Mask thresholding and move to cpu and numpy."""
     pred = pred > threshold
@@ -47,7 +66,6 @@ class SegmPredictor:
         )
         self.model.load_state_dict(torch.load(model_path))
         self.model.to(self.device)
-        self.model.eval()
 
         self.transforms = InferenceTransform(
             height=self.config.get_image('height'),
@@ -88,9 +106,7 @@ class SegmPredictor:
                             f"tuple or list, found {type(images)}.")
 
         transformed_images = self.transforms(images)
-        transformed_images = transformed_images.to(self.device)
-        with torch.no_grad():
-            preds = self.model(transformed_images)
+        preds = predict(transformed_images, self.model, self.device)
 
         pred_data = []
         for image, pred in zip(images, preds):  # iterate through images
