@@ -131,14 +131,15 @@ def get_preprocessed_sample(config, image_id, data, image):
 
 def preprocess_data(config, json_path, image_root, save_data_path):
     """Create and save targets for Unet training."""
-    image_folder = Path('images')
+
     target_folder = Path('targets')
+    image_processed_folder = Path('images_processed')
     # create folders
     save_root = Path(save_data_path).parent
-    image_dir = save_root / image_folder
-    os.makedirs(str(image_dir), exist_ok=True)
     target_dir = save_root / target_folder
     os.makedirs(str(target_dir), exist_ok=True)
+    image_processed_dir = save_root / image_processed_folder
+    os.makedirs(str(image_processed_dir), exist_ok=True)
 
     with open(json_path, 'r') as f:
         data = json.load(f)
@@ -151,8 +152,8 @@ def preprocess_data(config, json_path, image_root, save_data_path):
         image = cv2.imread(os.path.join(image_root, img_name))
         image, target = get_preprocessed_sample(config, image_id, data, image)
         # save image and target
-        cv2.imwrite(str(image_dir / img_name), image)
-        image_paths.append(image_folder / img_name)
+        cv2.imwrite(str(image_processed_dir / img_name), image)
+        image_paths.append(image_processed_folder / img_name)
         np.save(target_dir / Path(img_name).with_suffix('.npy'), target)
         target_paths.append(target_folder / Path(img_name).with_suffix('.npy'))
 
@@ -198,7 +199,7 @@ PREPROCESS_FUNC = {
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_path', type=str,
-                        default='/workdir/scripts/segm_config.json',
+                        default='scripts/segm_config.json',
                         help='Path to config.json.')
     args = parser.parse_args()
     main(args)
