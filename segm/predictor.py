@@ -77,7 +77,8 @@ class SegmPredictor:
 
         Args:
             images (np.ndarray or list of np.ndarray): One image or list of
-                images.
+                images in BGR format.
+
         Returns:
             pred_data (dict or list of dicts): A result dict for one input
                 image, and a list with dicts if there is a list of input images.
