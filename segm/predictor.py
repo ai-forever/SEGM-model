@@ -55,6 +55,14 @@ def get_contours_from_predictions(
 
 
 class SegmPredictor:
+    """Make SEGM prediction.
+
+    Args:
+        model_path (str): The path to the model weights.
+        config_path (str): The path to the model config.
+        device (str): The device for computation. Default is cuda.
+    """
+
     def __init__(self, model_path, config_path, device='cuda'):
         self.config = Config(config_path)
         self.device = torch.device(device)
@@ -73,8 +81,7 @@ class SegmPredictor:
         )
 
     def __call__(self, images):
-        """Make segmentation prediction.
-
+        """
         Args:
             images (np.ndarray or list of np.ndarray): One image or list of
                 images in BGR format.
