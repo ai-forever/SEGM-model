@@ -27,6 +27,12 @@ def predict(images, model, device, targets=None):
     return output
 
 
+def contour2bbox(contour):
+    """Get bbox from contour."""
+    x, y, w, h = cv2.boundingRect(contour)
+    return (x, y, x + w, y + h)
+
+
 def mask_preprocess(pred, threshold):
     """Mask thresholding and move to cpu and numpy."""
     pred = pred > threshold
@@ -37,7 +43,7 @@ def mask_preprocess(pred, threshold):
 def get_contours_from_predictions(
     pred, class_params, pred_height, pred_width, image_height, image_width
 ):
-    """Process predictions and return contours."""
+    """Process predictions and return contours and bboxes."""
     pred = mask_preprocess(pred, class_params['postprocess']['threshold'])
     contours = get_contours_from_mask(
         mask=pred,
@@ -50,8 +56,9 @@ def get_contours_from_predictions(
         image_height=image_height,
         image_width=image_width
     )
+    bboxes = [contour2bbox(contour) for contour in contours]
     contours = reduce_contours_dims(contours)
-    return contours
+    return contours, bboxes
 
 
 class SegmPredictor:
@@ -95,6 +102,7 @@ class SegmPredictor:
                     'predictions': [
                         {
                             'polygon': polygon [ [x1,y1], [x2,y2], ..., [xN,yN] ]
+                            'bbox': bounding box [x_min, y_min, x_max, y_max]
                             'class_name': str, class name of the polygon.
                         },
                         ...
@@ -125,7 +133,7 @@ class SegmPredictor:
             }
             for cls_idx, cls_name in enumerate(self.cls2params):  # iterate through classes
                 # prediction processing
-                contours = get_contours_from_predictions(
+                contours, bboxes = get_contours_from_predictions(
                     pred=pred[cls_idx],
                     class_params=self.cls2params[cls_name],
                     pred_height=self.config.get_image('height'),
@@ -134,10 +142,11 @@ class SegmPredictor:
                     image_width=img_w
                 )
                 # put predictions in output json
-                for contour in contours:
+                for contour, bbox in zip(contours, bboxes):
                     pred_img['predictions'].append(
                         {
                             'polygon': contour,
+                            'bbox': bbox,
                             'class_name': cls_name
                         }
                     )
