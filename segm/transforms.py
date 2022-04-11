@@ -5,6 +5,8 @@ import math
 import random
 import numpy as np
 
+from albumentations import augmentations
+
 
 class Normalize:
     def __call__(self, img):
@@ -32,24 +34,6 @@ class MoveChannels:
             return np.moveaxis(image, 0, -1)
 
 
-class RandomGaussianBlur:
-    """Apply Gaussian blur with random kernel size
-    Args:
-        max_ksize (int): maximal size of a kernel to apply, should be odd
-        sigma_x (int): Standard deviation
-    """
-
-    def __init__(self, max_ksize=5, sigma_x=20):
-        assert max_ksize % 2 == 1, "max_ksize should be odd"
-        self.max_ksize = max_ksize // 2 + 1
-        self.sigma_x = sigma_x
-
-    def __call__(self, image, mask):
-        kernal_size = tuple(2 * np.random.randint(0, self.max_ksize, 2) + 1)
-        blured_image = cv2.GaussianBlur(image, kernal_size, self.sigma_x)
-        return blured_image, mask
-
-
 class UseWithProb:
     def __init__(self, transform, prob=0.5):
         self.transform = transform
@@ -59,6 +43,14 @@ class UseWithProb:
         if random.random() < self.prob:
             image, mask = self.transform(image, mask)
         return image, mask
+
+
+class OneOf:
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, image, mask):
+        return random.choice(self.transforms)(image, mask)
 
 
 class ToDType:
@@ -239,14 +231,14 @@ def crop_around_center(image, width, height):
     return image[y1:y2, x1:x2]
 
 
-class RandomRotate:
+class RotateAndCrop:
     """Random image rotate around the image center
 
     Args:
         max_ang (float): Max angle of rotation in deg
     """
 
-    def __init__(self, max_ang=0):
+    def __init__(self, max_ang=90):
         self.max_ang = max_ang
 
     def __call__(self, img, mask):
@@ -272,7 +264,7 @@ class GridMask:
 
     def create_grid_masks(self, height, width):
         n_g = random.randint(4, 10)
-        grid_size = random.uniform(1.5, 3)
+        grid_size = random.uniform(3, 5)
         grid_h = height / n_g
         grid_w = width / n_g
         mask = np.ones(
@@ -324,13 +316,297 @@ class InferenceTransform:
         return transformed_tensor
 
 
+class CLAHE:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.CLAHE(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class MotionBlur:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.MotionBlur(
+            blur_limit=5, p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class ToGray:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.ToGray(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class ToSepia:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.ToSepia(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class RandomFog:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.RandomFog(
+            fog_coef_lower=0.05, fog_coef_upper=0.2, alpha_coef=0.5, p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class GlassBlur:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.GlassBlur(
+            sigma=0.7, max_delta=1, p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class Blur:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.Blur(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class ElasticTransform:
+    def __init__(self, prob):
+        self.aug = augmentations.geometric.transforms.ElasticTransform(p=prob)
+
+    def __call__(self, img, mask):
+        augmented = self.aug(image=img, mask=mask)
+        return augmented['image'], augmented['mask']
+
+
+class GridDistortion:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.GridDistortion(p=prob)
+
+    def __call__(self, img, mask):
+        augmented = self.aug(image=img, mask=mask)
+        return augmented['image'], augmented['mask']
+
+
+class OpticalDistortion:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.OpticalDistortion(
+            distort_limit=0.08, shift_limit=0.08, p=prob)
+
+    def __call__(self, img, mask):
+        augmented = self.aug(image=img, mask=mask)
+        return augmented['image'], augmented['mask']
+
+
+class Rotate:
+    def __init__(self, max_ang, prob):
+        self.aug = augmentations.geometric.rotate.Rotate(limit=max_ang, p=prob)
+
+    def __call__(self, img, mask):
+        augmented = self.aug(image=img, mask=mask)
+        return augmented['image'], augmented['mask']
+
+
+class CoarseDropout:
+    def __init__(self, prob):
+        self.aug = augmentations.CoarseDropout(
+            max_holes=12, max_height=15, max_width=15, p=prob)
+
+    def __call__(self, img, mask):
+        augmented = self.aug(image=img, mask=mask)
+        return augmented['image'], augmented['mask']
+
+
+class RandomRain:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.RandomRain(
+            blur_value=1, p=prob)
+
+    def __call__(self, img, mask):
+        augmented = self.aug(image=img, mask=mask)
+        return augmented['image'], augmented['mask']
+
+
+class RandomSnow:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.RandomSnow(
+            brightness_coeff=1.5, p=prob)
+
+    def __call__(self, img, mask):
+        augmented = self.aug(image=img, mask=mask)
+        return augmented['image'], augmented['mask']
+
+
+class ChannelDropout:
+    def __init__(self, prob):
+        self.aug = augmentations.ChannelDropout(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class MedianBlur:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.MedianBlur(
+            blur_limit=3, p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class GaussNoise:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.GaussNoise(
+            p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class ISONoise:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.ISONoise(
+            p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class MultiplicativeNoise:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.MultiplicativeNoise(
+            multiplier=(0.85, 1.15), p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class ChannelShuffle:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.ChannelShuffle(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class Posterize:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.Posterize(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class RGBShift:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.RGBShift(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class RandomBrightnessContrast:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.RandomBrightnessContrast(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class RandomGamma:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.RandomGamma(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class HueSaturationValue:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.HueSaturationValue(p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+class ImageCompression:
+    def __init__(self, prob):
+        self.aug = augmentations.transforms.ImageCompression(
+            quality_lower=60, quality_upper=90, p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
 def get_train_transforms(height, width, prob=0.4):
     transforms = Compose([
         UseWithProb(RandomTransposeAndFlip(), prob),
-        UseWithProb(RandomCrop(rnd_crop_min=0.7, rnd_crop_max=0.95), prob),
-        UseWithProb(RandomGaussianBlur(), prob),
-        UseWithProb(GridMask(), prob),
-        UseWithProb(RandomRotate(45), prob),
+        OneOf([
+            CLAHE(prob),
+            GaussNoise(prob),
+            ISONoise(prob),
+            MultiplicativeNoise(prob),
+            ImageCompression(prob)
+        ]),
+        OneOf([
+            UseWithProb(GridMask(), prob),
+            CoarseDropout(prob)
+        ]),
+        OneOf([
+            ElasticTransform(prob),
+            GridDistortion(prob),
+            OpticalDistortion(prob)
+        ]),
+        OneOf([
+            UseWithProb(RandomCrop(rnd_crop_min=0.5, rnd_crop_max=0.9), prob),
+            UseWithProb(RotateAndCrop(45), prob),
+            Rotate(45, prob)
+        ]),
+        OneOf([
+            ChannelDropout(prob),
+            ChannelShuffle(prob),
+            Posterize(prob),
+            RGBShift(prob),
+            ToGray(prob),
+            ToSepia(prob)
+        ]),
+        OneOf([
+            RandomBrightnessContrast(prob),
+            RandomGamma(prob),
+            HueSaturationValue(prob),
+            RandomSnow(prob)
+        ]),
+        OneOf([
+            RandomRain(prob),
+            MotionBlur(prob),
+            RandomFog(prob),
+            GlassBlur(prob),
+            MedianBlur(prob),
+        ]),
         Scale(height, width)
     ])
     return transforms
