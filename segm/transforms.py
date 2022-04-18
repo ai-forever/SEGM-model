@@ -562,7 +562,17 @@ class ImageCompression:
         return img, mask
 
 
-def get_train_transforms(height, width, prob=0.4):
+class Sharpen:
+    def __init__(self, prob):
+        self.aug = augmentations.Sharpen(
+            p=prob)
+
+    def __call__(self, img, mask):
+        img = self.aug(image=img)['image']
+        return img, mask
+
+
+def get_train_transforms(height, width, prob=0.3):
     transforms = Compose([
         UseWithProb(RandomTransposeAndFlip(), prob),
         OneOf([
@@ -570,7 +580,8 @@ def get_train_transforms(height, width, prob=0.4):
             GaussNoise(prob),
             ISONoise(prob),
             MultiplicativeNoise(prob),
-            ImageCompression(prob)
+            ImageCompression(prob),
+            Sharpen(prob)
         ]),
         OneOf([
             UseWithProb(GridMask(), prob),
