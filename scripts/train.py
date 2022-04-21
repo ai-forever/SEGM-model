@@ -122,7 +122,7 @@ def main(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001,
                                   weight_decay=0.01)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer=optimizer, mode='min', factor=0.5, patience=25)
+        optimizer=optimizer, mode='min', factor=0.6, patience=50)
 
     weight_limit_control = FilesLimitControl()
     best_loss = np.inf
