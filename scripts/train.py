@@ -6,7 +6,8 @@ import torch
 import argparse
 
 from segm.utils import (
-    val_loop, load_pretrain_model, FilesLimitControl, sec2min
+    val_loop, load_pretrain_model, FilesLimitControl, sec2min,
+    configure_logging
 )
 from segm.dataset import read_and_concat_datasets, SEGMDataset
 from segm.transforms import (
@@ -21,7 +22,9 @@ from segm.models import LinkResNet
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def train_loop(data_loader, model, criterion, optimizer, epoch, class_names):
+def train_loop(
+    data_loader, model, criterion, optimizer, epoch, class_names, logger
+):
     loss_avg = AverageMeter()
     iou_avg = AverageMeter()
     cls2iou = {cls_name: IOUMetric(cls_idx)
@@ -52,13 +55,13 @@ def train_loop(data_loader, model, criterion, optimizer, epoch, class_names):
         lr = param_group['lr']
     cls2iou_log = ''.join([f' IOU {cls_name}: {iou_fun.avg():.4f}'
                            for cls_name, iou_fun in cls2iou.items()])
-    print(f'\nEpoch {epoch}, '
-          f'Loss: {loss_avg.avg:.5f}, '
-          f'IOU avg: {iou_avg.avg:.4f}, '
-          f'{cls2iou_log}, '
-          f'F1 avg: {f1_score_avg.avg:.4f}, '
-          f'LR: {lr:.7f}, '
-          f'loop_time: {loop_time}')
+    logger.info(f'Epoch {epoch}, '
+                f'Loss: {loss_avg.avg:.5f}, '
+                f'IOU avg: {iou_avg.avg:.4f}, '
+                f'{cls2iou_log}, '
+                f'F1 avg: {f1_score_avg.avg:.4f}, '
+                f'LR: {lr:.7f}, '
+                f'loop_time: {loop_time}')
     return loss_avg.avg
 
 
@@ -106,15 +109,18 @@ def get_loaders(config):
 def main(args):
     config = Config(args.config_path)
     os.makedirs(config.get('save_dir'), exist_ok=True)
+    log_path = os.path.join(config.get('save_dir'), "output.log")
+    logger = configure_logging(log_path)
 
     train_loader, val_loader = get_loaders(config)
 
     class_names = config.get_classes().keys()
     model = LinkResNet(output_channels=len(class_names))
     if config.get('pretrain_path'):
-        states = load_pretrain_model(config.get('pretrain_path'), model)
+        states = load_pretrain_model(
+            config.get('pretrain_path'), model, logger)
         model.load_state_dict(states)
-        print('Load pretrained model')
+        logger.info(f"Load pretrained model {config.get('pretrain_path')}")
     model.to(DEVICE)
 
     criterion = FbBceLoss()
@@ -124,20 +130,22 @@ def main(args):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer=optimizer, mode='min', factor=0.6, patience=50)
 
-    weight_limit_control = FilesLimitControl()
+    weight_limit_control = FilesLimitControl(logger=logger)
     best_loss = np.inf
-    val_loss = val_loop(val_loader, model, criterion, DEVICE, class_names)
+    val_loss = val_loop(
+        val_loader, model, criterion, DEVICE, class_names, logger)
     for epoch in range(config.get('num_epochs')):
         train_loss = train_loop(train_loader, model, criterion, optimizer,
-                                epoch, class_names)
-        val_loss = val_loop(val_loader, model, criterion, DEVICE, class_names)
+                                epoch, class_names, logger)
+        val_loss = val_loop(
+            val_loader, model, criterion, DEVICE, class_names, logger)
         scheduler.step(train_loss)
         if val_loss < best_loss:
             best_loss = val_loss
             model_save_path = os.path.join(
                 config.get('save_dir'), f'model-{epoch}-{val_loss:.4f}.ckpt')
             torch.save(model.state_dict(), model_save_path)
-            print('Model weights saved')
+            logger.info(f'Model weights saved {model_save_path}')
             weight_limit_control(model_save_path)
 
 
