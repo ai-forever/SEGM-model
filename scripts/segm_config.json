@@ -1,10 +1,10 @@
 {
     "save_dir": "/workdir/data/experiments/test",
-    "num_epochs": 1000,
+    "num_epochs": 1500,
     "pretrain_path": "",
     "image": {
-        "width": 1024,
-        "height": 768
+        "width": 896,
+        "height": 896
     },
     "classes": {
         "shrinked_pupil_text": {
@@ -31,46 +31,91 @@
     "train": {
         "datasets": [
             {
-                "json_path": "/home/jovyan/data/htr_dataset_SEGM_15102021/annotations_train.json",
-                "image_root": "/home/jovyan/data/htr_dataset_SEGM_15102021/images/",
-                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_15102021/annotations_train.csv"
+                "json_path": "/workdir/data/segmentation_15102021/annotations_train.json",
+                "image_root": "/workdir/data/segmentation_15102021/images/",
+                "processed_data_path": "/workdir/data/segmentation_15102021/annotations_train.csv",
+                "prob": 0.45
             },
             {
-                "json_path": "/home/jovyan/data/htr_dataset_SEGM_26012022/annotations_train.json",
-                "image_root": "/home/jovyan/data/htr_dataset_SEGM_26012022/images/",
-                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_26012022/annotations_train.csv"
+                "json_path": "/workdir/data/segmentation_26012022/annotations_train.json",
+                "image_root": "/workdir/data/segmentation_26012022/images/",
+                "processed_data_path": "/workdir/data/segmentation_26012022/annotations_train.csv",
+                "prob": 0.4
+            },
+            {
+                "json_path": "/workdir/data/segmentation_11032022_en/annotations_train.json",
+                "image_root": "/workdir/data/segmentation_11032022_en/images/",
+                "processed_data_path": "/workdir/data/segmentation_11032022_en/annotations_train.csv",
+                "prob": 0.05
+            },
+            {
+                "json_path": "/workdir/data/segmentation_11032022_ru/annotations_train.json",
+                "image_root": "/workdir/data/segmentation_11032022_ru/images/",
+                "processed_data_path": "/workdir/data/segmentation_11032022_ru/annotations_train.csv",
+                "prob": 0.1
             }
         ],
+        "epoch_size": 1900,
         "batch_size": 10
     },
     "val": {
         "datasets": [
             {
-                "json_path": "/home/jovyan/data/htr_dataset_SEGM_15102021/annotations_val.json",
-                "image_root": "/home/jovyan/data/htr_dataset_SEGM_15102021/images/",
-                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_15102021/annotations_val.csv"
+                "json_path": "/workdir/data/segmentation_15102021/annotations_val.json",
+                "image_root": "/workdir/data/segmentation_15102021/images/",
+                "processed_data_path": "/workdir/data/segmentation_15102021/annotations_val.csv",
+                "prob": 1
             },
             {
-                "json_path": "/home/jovyan/data/htr_dataset_SEGM_26012022/annotations_val.json",
-                "image_root": "/home/jovyan/data/htr_dataset_SEGM_26012022/images/",
-                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_26012022/annotations_val.csv"
+                "json_path": "/workdir/data/segmentation_26012022/annotations_val.json",
+                "image_root": "/workdir/data/segmentation_26012022/images/",
+                "processed_data_path": "/workdir/data/segmentation_26012022/annotations_val.csv",
+                "prob": 1
+            },
+            {
+                "json_path": "/workdir/data/segmentation_11032022_en/annotations_val.json",
+                "image_root": "/workdir/data/segmentation_11032022_en/images/",
+                "processed_data_path": "/workdir/data/segmentation_11032022_en/annotations_val.csv",
+                "prob": 1
+            },
+            {
+                "json_path": "/workdir/data/segmentation_11032022_ru/annotations_val.json",
+                "image_root": "/workdir/data/segmentation_11032022_ru/images/",
+                "processed_data_path": "/workdir/data/segmentation_11032022_ru/annotations_val.csv",
+                "prob": 1
             }
         ],
+        "epoch_size": null,
         "batch_size": 10
     },
     "test": {
         "datasets": [
             {
-                "json_path": "/home/jovyan/data/htr_dataset_SEGM_15102021/annotations_test.json",
-                "image_root": "/home/jovyan/data/htr_dataset_SEGM_15102021/images/",
-                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_15102021/annotations_test.csv"
+                "json_path": "/workdir/data/segmentation_15102021/annotations_test.json",
+                "image_root": "/workdir/data/segmentation_15102021/images/",
+                "processed_data_path": "/workdir/data/segmentation_15102021/annotations_test.csv",
+                "prob": 1
             },
             {
-                "json_path": "/home/jovyan/data/htr_dataset_SEGM_26012022/annotations_test.json",
-                "image_root": "/home/jovyan/data/htr_dataset_SEGM_26012022/images/",
-                "processed_data_path": "/home/jovyan/SEGM-model/data/htr_dataset_SEGM_26012022/annotations_test.csv"
+                "json_path": "/workdir/data/segmentation_26012022/annotations_test.json",
+                "image_root": "/workdir/data/segmentation_26012022/images/",
+                "processed_data_path": "/workdir/data/segmentation_26012022/annotations_test.csv",
+                "prob": 1
+            },
+            {
+                "json_path": "/workdir/data/segmentation_11032022_en/annotations_test.json",
+                "image_root": "/workdir/data/segmentation_11032022_en/images/",
+                "processed_data_path": "/workdir/data/segmentation_11032022_en/annotations_test.csv",
+                "prob": 1
+            },
+            {
+                "json_path": "/workdir/data/segmentation_11032022_ru/annotations_test.json",
+                "image_root": "/workdir/data/segmentation_11032022_ru/images/",
+                "processed_data_path": "/workdir/data/segmentation_11032022_ru/annotations_test.csv",
+                "prob": 1
             }
         ],
+        "epoch_size": null,
         "batch_size": 10
     }
 }

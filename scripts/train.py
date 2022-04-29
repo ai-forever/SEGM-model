@@ -9,7 +9,7 @@ from segm.utils import (
     val_loop, load_pretrain_model, FilesLimitControl, sec2min,
     configure_logging
 )
-from segm.dataset import read_and_concat_datasets, SEGMDataset
+from segm.dataset import get_data_loader
 from segm.transforms import (
     get_train_transforms, get_image_transforms, get_mask_transforms
 )
@@ -68,40 +68,27 @@ def train_loop(
 def get_loaders(config):
     mask_transforms = get_mask_transforms()
     image_transforms = get_image_transforms()
-
-    processed_data_paths = []
-    for dataset in config.get_train('datasets'):
-        processed_data_paths.append(dataset['processed_data_path'])
-    data = read_and_concat_datasets(processed_data_paths)
     train_transforms = get_train_transforms(config.get_image('height'),
                                             config.get_image('width'))
-    train_dataset = SEGMDataset(
-        data=data,
+    train_loader = get_data_loader(
         train_transforms=train_transforms,
         image_transforms=image_transforms,
-        mask_transforms=mask_transforms
-    )
-    train_loader = torch.utils.data.DataLoader(
-        dataset=train_dataset,
+        mask_transforms=mask_transforms,
+        csv_paths=config.get_train_datasets('processed_data_path'),
+        dataset_probs=config.get_train_datasets('prob'),
+        epoch_size=config.get_train('epoch_size'),
         batch_size=config.get_train('batch_size'),
-        num_workers=5,
-        shuffle=True
+        drop_last=True
     )
-
-    processed_data_paths = []
-    for dataset in config.get_val('datasets'):
-        processed_data_paths.append(dataset['processed_data_path'])
-    data = read_and_concat_datasets(processed_data_paths)
-    val_dataset = SEGMDataset(
-        data=data,
+    val_loader = get_data_loader(
         train_transforms=None,
         image_transforms=image_transforms,
-        mask_transforms=mask_transforms
-    )
-    val_loader = torch.utils.data.DataLoader(
-        dataset=val_dataset,
+        mask_transforms=mask_transforms,
+        csv_paths=config.get_val_datasets('processed_data_path'),
+        dataset_probs=config.get_val_datasets('prob'),
+        epoch_size=config.get_val('epoch_size'),
         batch_size=config.get_val('batch_size'),
-        num_workers=5,
+        drop_last=False
     )
     return train_loader, val_loader
 

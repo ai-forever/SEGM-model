@@ -25,3 +25,12 @@ class Config:
 
     def get_image(self, key):
         return self.config['image'][key]
+
+    def get_train_datasets(self, key):
+        return [data[key] for data in self.config['train']['datasets']]
+
+    def get_val_datasets(self, key):
+        return [data[key] for data in self.config['val']['datasets']]
+
+    def get_test_datasets(self, key):
+        return [data[key] for data in self.config['test']['datasets']]

@@ -1,7 +1,7 @@
 import torch
 import argparse
 
-from segm.dataset import read_and_concat_datasets, SEGMDataset
+from segm.dataset import get_data_loader
 from segm.transforms import get_image_transforms, get_mask_transforms
 from segm.config import Config
 from segm.losses import FbBceLoss
@@ -16,20 +16,15 @@ def get_loader(config):
     mask_transforms = get_mask_transforms()
     image_transforms = get_image_transforms()
 
-    processed_data_paths = []
-    for dataset in config.get_test('datasets'):
-        processed_data_paths.append(dataset['processed_data_path'])
-    data = read_and_concat_datasets(processed_data_paths)
-    test_dataset = SEGMDataset(
-        data=data,
+    test_loader = get_data_loader(
         train_transforms=None,
         image_transforms=image_transforms,
-        mask_transforms=mask_transforms
-    )
-    test_loader = torch.utils.data.DataLoader(
-        dataset=test_dataset,
+        mask_transforms=mask_transforms,
+        csv_paths=config.get_test_datasets('processed_data_path'),
+        dataset_probs=config.get_test_datasets('prob'),
+        epoch_size=config.get_test('epoch_size'),
         batch_size=config.get_test('batch_size'),
-        num_workers=5,
+        drop_last=False
     )
     return test_loader
 
@@ -45,7 +40,6 @@ def main(args):
     model.to(DEVICE)
 
     criterion = FbBceLoss()
-
 
     val_loop(test_loader, model, criterion, DEVICE, class_names, logger)
 
