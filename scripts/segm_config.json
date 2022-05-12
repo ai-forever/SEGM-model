@@ -26,6 +26,16 @@
                 "threshold": 0.8,
                 "min_area": 10
             }
+        },
+        "bordered_pupil_text": {
+            "annotation_classes": ["pupil_text"],
+            "polygon2mask": {
+                "BorderMaskMaker": {"shrink_ratio": 0.5}
+            },
+            "postprocess": {
+                "threshold": 0.8,
+                "min_area": 10
+            }
         }
     },
     "train": {

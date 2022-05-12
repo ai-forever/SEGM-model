@@ -280,7 +280,7 @@ class MakeBorderMask:
 
     def get_border_mask(self):
         canvas = self.canvas
-        canvas = (canvas > 0.1).astype(np.uint8)  # binarize mask
+        canvas = (canvas > 0.5).astype(np.uint8)  # binarize mask
         return canvas
 
     def _distance_matrix(self, xs, ys, a, b):
