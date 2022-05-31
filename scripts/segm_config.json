@@ -27,7 +27,7 @@
                 "min_area": 10
             }
         },
-        "bordered_pupil_text": {
+        "bordered_text": {
             "annotation_classes": ["pupil_text", "pupil_comment", "teacher_comment"],
             "polygon2mask": {
                 "BorderMaskMaker": {"shrink_ratio": 0.5}
