@@ -79,7 +79,7 @@ class SegmPredictor:
             output_channels=len(self.cls2params),
             pretrained=False
         )
-        self.model.load_state_dict(torch.load(model_path))
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.to(self.device)
 
         self.transforms = InferenceTransform(
