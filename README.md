@@ -1,4 +1,6 @@
-# Segmentation Unet model
+# Segmentation model
+
+This is a model for semantic segmentation based on [LinkNet](https://arxiv.org/abs/1707.03718) (Unet-like architecture). 
 
 ## Quick setup and start
 
