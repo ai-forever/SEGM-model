@@ -61,8 +61,14 @@ class ToDType:
         return arr.astype(dtype=self.dtype)
 
 
-class ExpandDims:
+class ExpandDimsIfNeeded:
+    """Add third channel for masks with one class.
+    This is needed ss most of cv2 functions tends to
+    remove single channel (H, W, 1) -> (H, W)
+    """
     def __call__(self, image):
+        if len(image.shape) == 3:
+            return image
         return np.expand_dims(image, -1)
 
 
@@ -254,48 +260,6 @@ class RotateAndCrop:
         mask = cv2.warpAffine(mask, M, (w, h))
         mask = crop_around_center(mask, w_cropped, h_cropped)
         return img, mask
-
-
-class GridMask:
-    # https://www.kaggle.com/haqishen/gridmask
-    def __init__(self, fill_value=0, mode=0):
-        self.mode = mode
-        self.fill_value = fill_value
-
-    def create_grid_masks(self, height, width):
-        n_g = random.randint(4, 10)
-        grid_size = random.uniform(3, 5)
-        grid_h = height / n_g
-        grid_w = width / n_g
-        mask = np.ones(
-            (int((n_g + 1)*grid_h), int((n_g + 1)*grid_w))
-        ).astype(np.uint8)
-        for i in range(n_g + 1):
-            for j in range(n_g + 1):
-                mask[
-                     int(i*grid_h):int(i*grid_h + grid_h / grid_size),
-                     int(j*grid_w):int(j*grid_w + grid_w / grid_size)
-                ] = self.fill_value
-                if self.mode == 2:
-                    mask[
-                         int(i*grid_h + grid_h / 2):int(i*grid_h + grid_h),
-                         int(j*grid_w + grid_w / 2):int(j*grid_w + grid_w)
-                    ] = self.fill_value
-            if self.mode == 1:
-                mask = 1 - mask
-        return mask
-
-    def __call__(self, img, mask=None):
-        h, w = img.shape[:2]
-        rand_h = random.randint(0, int(h/2))
-        rand_w = random.randint(0, int(w/2))
-        grid_mask = self.create_grid_masks(h*2, w*2)
-        grid_mask = np.expand_dims(grid_mask, 2)
-        img *= grid_mask[rand_h:rand_h+h, rand_w:rand_w+w].astype(img.dtype)
-        if mask is not None:
-            mask *= grid_mask[rand_h:rand_h+h, rand_w:rand_w+w].astype(mask.dtype)
-            return img, mask
-        return img
 
 
 class InferenceTransform:
@@ -574,7 +538,7 @@ class Sharpen:
 
 def get_train_transforms(height, width, prob=0.3):
     transforms = Compose([
-        UseWithProb(RandomTransposeAndFlip(), prob),
+        UseWithProb(RandomTransposeAndFlip(), 1),
         OneOf([
             CLAHE(prob),
             GaussNoise(prob),
@@ -584,16 +548,10 @@ def get_train_transforms(height, width, prob=0.3):
             Sharpen(prob)
         ]),
         OneOf([
-            UseWithProb(GridMask(), prob),
             CoarseDropout(prob)
         ]),
+        UseWithProb(RandomCrop(rnd_crop_min=0.75), prob),
         OneOf([
-            ElasticTransform(prob),
-            GridDistortion(prob),
-            OpticalDistortion(prob)
-        ]),
-        OneOf([
-            UseWithProb(RandomCrop(rnd_crop_min=0.5, rnd_crop_max=0.9), prob),
             UseWithProb(RotateAndCrop(45), prob),
             Rotate(45, prob)
         ]),
@@ -609,7 +567,6 @@ def get_train_transforms(height, width, prob=0.3):
             RandomBrightnessContrast(prob),
             RandomGamma(prob),
             HueSaturationValue(prob),
-            RandomSnow(prob)
         ]),
         OneOf([
             RandomRain(prob),
@@ -634,6 +591,7 @@ def get_image_transforms():
 
 def get_mask_transforms():
     transforms = torchvision.transforms.Compose([
+        ExpandDimsIfNeeded(),
         MoveChannels(to_channels_first=True),  # move channel axis to zero position
         ToDType(dtype=np.float32),
         ToTensor()
