@@ -145,15 +145,9 @@ class SegmPredictor:
     """
 
     def __init__(self, model_path, config_path, device='cuda', onnx=False):
-        if (
-            onnx
-            and device=='cpu'
-        ):
+        if onnx and device == 'cpu':
             self.model = SegmONNXCPUModel(model_path, config_path)
-        elif (
-            onnx
-            and device=='cuda'
-        ):
+        elif onnx and device == 'cuda':
             raise Exception("ONNX runtime is only available on CPU devices")
         else:
             self.model = SegmTorchModel(model_path, config_path, device)
