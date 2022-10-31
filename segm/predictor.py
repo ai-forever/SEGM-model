@@ -46,10 +46,7 @@ def get_preds(images, preds, cls2params, config, cuda_torch_input=True):
     pred_data = []
     for image, pred in zip(images, preds):  # iterate through images
         img_h, img_w = image.shape[:2]
-        pred_img = {
-            'image': {'height': img_h, 'width': img_w},
-            'predictions': []
-        }
+        pred_img = {'predictions': []}
         for cls_idx, cls_name in enumerate(cls2params):  # iter through classes
             pred_cls = pred[cls_idx]
             # thresholding works faster on cuda than on cpu
@@ -155,15 +152,13 @@ class SegmPredictor:
     def __call__(self, images):
         """
         Args:
-            images (np.ndarray or list of np.ndarray): One image or list of
-                images in BGR format.
+            images (list of np.ndarray): A list of images in BGR format.
 
         Returns:
             pred_data (dict or list of dicts): A result dict for one input
                 image, and a list with dicts if there was a list with images.
             [
                 {
-                    'image': {'height': Int, 'width': Int},
                     'predictions': [
                         {
                             'polygon': polygon [[x1,y1], [x2,y2], ..., [xN,yN]]
@@ -177,22 +172,9 @@ class SegmPredictor:
                 ...
             ]
         """
-        if isinstance(images, (list, tuple)):
-            one_image = False
-        elif isinstance(images, np.ndarray):
-            images = [images]
-            one_image = True
-        else:
-            raise Exception(f"Input must contain np.ndarray, "
-                            f"tuple or list, found {type(images)}.")
-
         preds = self.model.predict(images)
         pred_data = self.model.get_preds(images, preds)
-
-        if one_image:
-            return pred_data[0]
-        else:
-            return pred_data
+        return pred_data
 
 
 def get_contours_from_mask(mask, min_area=5):
