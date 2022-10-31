@@ -1,6 +1,8 @@
 # Segmentation model
 
-This is a model for semantic segmentation based on [LinkNet](https://arxiv.org/abs/1707.03718) (Unet-like architecture). 
+This is a model for semantic segmentation based on [LinkNet](https://arxiv.org/abs/1707.03718) (Unet-like architecture).
+
+This is a part of [ReadingPipeline](https://github.com/ai-forever/ReadingPipeline) repo.
 
 ## Quick setup and start
 
@@ -110,5 +112,15 @@ To test the model:
 ```bash
 python scripts/evaluate.py \
 --config_path path/to/the/segm_config.json \
+--model_path path/to/the/model-weights.ckpt
+```
+
+## ONNX for cpu
+
+You can convert Torch model to ONNX to speed up inference on cpu.
+
+```bash
+python scripts/torch2cpu_onnx.py \
+--config_path path/to/the/ocr_config.json \
 --model_path path/to/the/model-weights.ckpt
 ```
