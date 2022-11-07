@@ -79,10 +79,13 @@ def get_preds(images, preds, cls2params, config, cuda_torch_input=True):
 
 
 class SegmONNXCPUModel(SegmModel):
-    def __init__(self, model_path, config_path):
+    def __init__(self, model_path, num_threads, config_path):
         self.config = Config(config_path)
         self.cls2params = self.config.get_classes()
-        self.model = ort.InferenceSession(model_path)
+        sess = ort.SessionOptions()
+        sess.intra_op_num_threads = num_threads
+        sess.inter_op_num_threads = num_threads
+        self.model = ort.InferenceSession(model_path, sess)
         self.transforms = InferenceTransform(
             height=self.config.get_image('height'),
             width=self.config.get_image('width'),
@@ -141,9 +144,11 @@ class SegmPredictor:
         device (str): The device for computation. Default is cuda.
     """
 
-    def __init__(self, model_path, config_path, device='cuda', onnx=False):
+    def __init__(
+        self, model_path, config_path, num_threads, device='cuda', onnx=False
+    ):
         if onnx and device == 'cpu':
-            self.model = SegmONNXCPUModel(model_path, config_path)
+            self.model = SegmONNXCPUModel(model_path, num_threads, config_path)
         elif onnx and device == 'cuda':
             raise Exception("ONNX runtime is only available on CPU devices")
         else:
