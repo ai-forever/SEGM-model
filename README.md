@@ -120,7 +120,7 @@ python scripts/evaluate.py \
 You can convert Torch model to ONNX to speed up inference on cpu.
 
 ```bash
-python scripts/torch2cpu_onnx.py \
+python scripts/torch2onnx.py \
 --config_path path/to/the/ocr_config.json \
 --model_path path/to/the/model-weights.ckpt
 ```
