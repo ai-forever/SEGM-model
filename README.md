@@ -2,7 +2,7 @@
 
 This is a model for semantic segmentation based on [LinkNet](https://arxiv.org/abs/1707.03718) (Unet-like architecture).
 
-This is a part of [ReadingPipeline](https://github.com/ai-forever/ReadingPipeline) repo.
+SEGM-model is a part of [ReadingPipeline](https://github.com/ai-forever/ReadingPipeline) repo.
 
 ## Quick setup and start
 
@@ -22,11 +22,11 @@ If you don't want to use Docker, you can install dependencies via requirements.t
 
 ## Configuring the model
 
-You can change the [segm_config.json](scripts/segm_config.json) (or make a copy of the file) and set some of the the base training and evaluating parameters: num epochs, image size, saving dir and etc.
+You can change the [segm_config.json](scripts/segm_config.json) and set some of the the base training and evaluating parameters: num epochs, image size, saving dir, etc.
 
 ### Class specific parameters
 
-Parameters in the classes-dict are set individually for each class of the model. The order of the sub-dicts in the classes-dict corresponds to the order of the mask layers in the predicted tensor. Each dictionary contains parameters for model classes to pre- and post-process stages, for example:
+Parameters in the `classes` are set individually for each class of the model. The order of the subdicts in the `classes` corresponds to the order of the mask layers in the predicted tensor. Each dictionary contains parameters for model classes to pre- and post-process stages, for example:
 
 ```
 "classes": {
@@ -44,13 +44,13 @@ Parameters in the classes-dict are set individually for each class of the model.
 }
 ```
 
-- `annotation_classes` - a list with class names from `annotation["categories"]` (’name’ key) indicating which polygons from annotation.json will be converted to a target mask. Polygons with these `class names` will be combined into one class mask.
-- `polygon2mask` - a list of function that would be applied one by one to convert polygons to mask and prepare target for this class. There are several functions available - to create regular or shrink masks. To add a new function to the process, you need to add it to the PREPROCESS_FUNC dictionary in [prepare_dataset.py](scripts/prepare_dataset.py) and also specify it in the polygon2mask-dict in the config.
+- `annotation_classes` - a list with class names from `annotation["categories"]`. Polygons of these classes will be combined into one class.
+- `polygon2mask` - a list of functions that will be applied one by one to convert polygons to mask and prepare target for this class. There are several functions available - to create regular or shrinked masks. To add a new function to the processing, you need to add it to the `PREPROCESS_FUNC` dictionary in [prepare_dataset.py](scripts/prepare_dataset.py) and also specify it in the `polygon2mask`-dict in the config.
 
-Prediction postprocessing settings:
+Postprocessing settings:
 
-- `threshold` is the threshold of the model's confidence, above this value the mask becomes Ture, below - False. It helps to remove some false predictions of the model with low confidence.
-- `min_area` - the minimum area of the polygon so that it is considered as real, true positive polygon.
+- `threshold` is the threshold of the model's confidence. Above this value the mask becomes Ture, below - False. It helps to remove some false predictions of the model with low confidence.
+- `min_area` - the minimum area of a polygon (polygons with less area will be removed).
 
 ### Dataset folders
 
@@ -62,17 +62,17 @@ Individual for train / val / test:
         {
             "json_path": "path/to/annotaion.json",
             "image_root": "path/to/folder/with/images",
-            "processed_data_path": "path/to/save/processed/dataset.csv"
+            "processed_data_path": "path/to/save/processed_dataset.csv"
         },
         ...
     ],
     "batch_size": 8
 }
 ```
-In datasets-dict, you can specify paths to multiple datasets for training and testing.
+In `datasets`-dict, you can specify paths to multiple datasets for training and testing.
 
 - `json_path` (to the annotation.json) and `image_root` (to the folder with images) are paths to the dataset with markup in COCO format.
-- `processed_data_path` - the saving path of the final csv file, to be produced by the prepare_dataset.py script. This csv-file will be used in train stage. This file store paths to the processed target masks.
+- `processed_data_path` - the saving path of the final csv file, which is produced by the prepare_dataset.py script. This csv-file will be used in the train stage. This file stores paths to the processed target masks.
 
 ## Input dataset description
 
@@ -95,7 +95,7 @@ To preprocess dataset and create target masks for training:
 python scripts/prepare_dataset.py --config_path path/to/the/segm_config.json
 ```
 
-The script creates a target masks for train, val and test stage. The path to the input dataset is set in the config file in `json_path` and `image_root`. The output csv file is saved to `processed_data_path` from the config.
+The script creates a target masks for train/val/test stages. The path to the input dataset is set in the config file in `json_path` and `image_root`. The output csv file is saved to `processed_data_path` from the config.
 
 ## Training
 
@@ -115,7 +115,7 @@ python scripts/evaluate.py \
 --model_path path/to/the/model-weights.ckpt
 ```
 
-## ONNX for cpu
+## ONNX
 
 You can convert Torch model to ONNX to speed up inference on cpu.
 

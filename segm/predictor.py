@@ -1,5 +1,7 @@
 import torch
 import onnxruntime as ort
+import openvino.runtime as ov
+from enum import Enum
 
 import cv2
 import numpy as np
@@ -50,7 +52,8 @@ def get_preds(images, preds, cls2params, config, cuda_torch_input=True):
         for cls_idx, cls_name in enumerate(cls2params):  # iter through classes
             pred_cls = pred[cls_idx]
             # thresholding works faster on cuda than on cpu
-            pred_cls = pred_cls > cls2params[cls_name]['postprocess']['threshold']
+            pred_cls = \
+                pred_cls > cls2params[cls_name]['postprocess']['threshold']
             if cuda_torch_input:
                 pred_cls = pred_cls.cpu().numpy()
 
@@ -106,6 +109,36 @@ class SegmONNXCPUModel(SegmModel):
         return pred_data
 
 
+class SegmOpenVINOCPUModel(SegmModel):
+    def __init__(self, model_path, num_threads, config_path):
+        self.config = Config(config_path)
+        self.cls2params = self.config.get_classes()
+        ie = ov.Core()
+        model_onnx = ie.read_model(model_path, "AUTO")
+        self.model = ie.compile_model(
+            model=model_onnx,
+            device_name="CPU",
+            config={"INFERENCE_NUM_THREADS": str(num_threads)}
+        )
+        self.transforms = InferenceTransform(
+            height=self.config.get_image('height'),
+            width=self.config.get_image('width'),
+            return_numpy=True
+        )
+
+    def predict(self, images):
+        transformed_images = self.transforms(images)
+        infer_request = self.model.create_infer_request()
+        infer_request.infer([transformed_images])
+        output = infer_request.get_output_tensor().data
+        return output
+
+    def get_preds(self, images, preds):
+        pred_data = get_preds(
+            images, preds, self.cls2params, self.config, False)
+        return pred_data
+
+
 class SegmTorchModel(SegmModel):
     def __init__(self, model_path, config_path, device='cuda'):
         self.config = Config(config_path)
@@ -135,24 +168,53 @@ class SegmTorchModel(SegmModel):
         return pred_data
 
 
+class RuntimeType(Enum):
+    ONNX = "ONNX"
+    OVINO = "OpenVino"
+    TORCH = "Pytorch"
+
+
+def validate_value_in_enum(value, enum_cls: Enum):
+    enum_values = [e.value for e in enum_cls]
+    if value not in enum_values:
+        raise Exception(f"{value} is not supported. "
+                        f"Allowed types are: {', '.join(enum_values)}")
+
+
 class SegmPredictor:
     """Make SEGM prediction.
 
     Args:
         model_path (str): The path to the model weights.
         config_path (str): The path to the model config.
+        num_threads (int): The number of cpu threads to use
+            (in ONNX and OpenVino runtimes).
+        runtime (str): The runtime method of the model (Pytorch, ONNX or
+            OpenVino from the RuntimeType). Default is Pytorch.
         device (str): The device for computation. Default is cuda.
     """
 
     def __init__(
-        self, model_path, config_path, num_threads, device='cuda', onnx=False
+        self, model_path, config_path, num_threads, device='cuda',
+        runtime='Pytorch'
     ):
-        if onnx and device == 'cpu':
-            self.model = SegmONNXCPUModel(model_path, num_threads, config_path)
-        elif onnx and device == 'cuda':
-            raise Exception("ONNX runtime is only available on CPU devices")
-        else:
+        validate_value_in_enum(runtime, RuntimeType)
+        if RuntimeType(runtime) is RuntimeType.TORCH:
             self.model = SegmTorchModel(model_path, config_path, device)
+        elif (
+            RuntimeType(runtime) is RuntimeType.ONNX
+            and device == 'cpu'
+        ):
+            self.model = SegmONNXCPUModel(model_path, num_threads, config_path)
+        elif (
+            RuntimeType(runtime) is RuntimeType.OVINO
+            and device == 'cpu'
+        ):
+            self.model = SegmOpenVINOCPUModel(
+                model_path, num_threads, config_path)
+        else:
+            raise Exception(f"Runtime type {runtime} with device {device} "
+                            "are not supported options.")
 
     def __call__(self, images):
         """
