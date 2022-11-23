@@ -4,6 +4,10 @@ This is a model for semantic segmentation based on [LinkNet](https://arxiv.org/a
 
 SEGM-model is a part of [ReadingPipeline](https://github.com/ai-forever/ReadingPipeline) repo.
 
+## Demo
+
+In the [demo-SEGM.ipynb](scripts/demo-SEGM.ipynb) you can find an example of usage of SEGM-model (you can run it in your Google Colab).
+
 ## Quick setup and start
 
 - Nvidia drivers >= 470, CUDA >= 11.4
