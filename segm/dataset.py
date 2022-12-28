@@ -154,7 +154,7 @@ class SequentialSampler(Sampler):
             a=self.dataset_len,
             size=self.epoch_size,
             p=self.init_sample_probs,
-            replace=False,  # only unique samples inside an epoch
+            replace=True,
         )
         return iter(dataset_indexes)
 
