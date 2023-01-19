@@ -6,7 +6,7 @@ SEGM-model is a part of [ReadingPipeline](https://github.com/ai-forever/ReadingP
 
 ## Demo
 
-In the [demo-SEGM.ipynb](scripts/demo-SEGM.ipynb) you can find an example of usage of SEGM-model (you can run it in your Google Colab).
+In the [demo](scripts/SEGM-GoogleColab.ipynb) you can find an example of using the SEGM-model (you can run it in your Google Colab).
 
 ## Quick setup and start
 
