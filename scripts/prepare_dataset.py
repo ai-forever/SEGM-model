@@ -50,12 +50,11 @@ def scale_contour(cnt, scale):
     return cnt_scaled
 
 
-def get_polyline_mask(polygons, image_h, image_w, thickness=10, scale=1):
+def get_polyline_mask(polygons, image_h, image_w, thickness=10):
     mask = np.zeros((image_h, image_w), dtype=np.uint8)
     for polygon in polygons:
         polygon = polyline2polygon(polygon, thickness)
         pts = np.array(np.array(polygon), dtype=np.int32)
-        pts = scale_contour(pts, scale)
         cv2.fillPoly(mask, [pts], 1)
     return mask
 

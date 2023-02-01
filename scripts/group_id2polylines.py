@@ -48,9 +48,20 @@ def merge_polygins_to_line(polygons):
     line = []
     for polygon in polygons:
         M = cv2.moments(np.array([polygon]))
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-        line.append([cX, cY])
+        if M["m00"] > 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            line.append([cX, cY])
+        else:
+            print(polygon)
+    if len(line) == 1:
+        x_min = polygons[0].min(0)[0]
+        x_max = polygons[0].max(0)[0]
+        w = x_max - x_min
+        left_dot = [line[0][0] - w/4, line[0][1]]
+        right_dot = [line[0][0] + w/4, line[0][1]]
+        line.append(left_dot)
+        line.append(right_dot)
     line = sorted(line, key=lambda tup: tup[0])
     return line
 
@@ -82,16 +93,15 @@ def main(args, line_name='text_line'):
         group_ids = get_group_ids_for_image(image_id, data)
         for group_id in group_ids:
             polygons = get_polygons_by_group_id(data, image_id, group_id)
-            if len(polygons) > 1:  # to not create lines from one word
-                polyline = merge_polygins_to_line(polygons)
-                polyline = coord2numbers(polyline)
-                data['annotations'].append(
-                    {
-                        'category_id': text_line_category_id,
-                        'image_id': image_id,
-                        'segmentation': polyline
-                    }
-                )
+            polyline = merge_polygins_to_line(polygons)
+            polyline = coord2numbers(polyline)
+            data['annotations'].append(
+                {
+                    'category_id': text_line_category_id,
+                    'image_id': image_id,
+                    'segmentation': polyline
+                }
+            )
 
     with open(args.annotation_save_path, 'w') as f:
         json.dump(data, f)
