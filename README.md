@@ -34,8 +34,8 @@ Parameters in the `classes` are set individually for each class of the model. Th
 
 ```
 "classes": {
-	"pupil_and_teacher_comments": {
-		"annotation_classes": ["pupil_comment", "teacher_comment"],
+	"class_name": {
+		"annotation_classes": ["class1", "class2"],
 		"polygon2mask": {
 			"ShrinkMaskMaker": {"shrink_ratio": 0.5}
 		},
@@ -48,8 +48,8 @@ Parameters in the `classes` are set individually for each class of the model. Th
 }
 ```
 
-- `annotation_classes` - a list with class names from `annotation["categories"]`. Polygons of these classes will be combined into one class.
-- `polygon2mask` - a list of functions that will be applied one by one to convert polygons to mask and prepare target for this class. There are several functions available - to create regular or shrinked masks. To add a new function to the processing, you need to add it to the `PREPROCESS_FUNC` dictionary in [prepare_dataset.py](scripts/prepare_dataset.py) and also specify it in the `polygon2mask`-dict in the config.
+- `annotation_classes` - a list with class names from `annotation["categories"]`. If multiple are passed, classes will be merged.
+- `polygon2mask` - a list of functions that will be applied one by one to convert polygons to mask and prepare target for this class. There are several functions available - to create regular, border or shrinked masks. To add a new function to the processing, you need to add it to the `PREPROCESS_FUNC` dictionary in [prepare_dataset.py](scripts/prepare_dataset.py) and also specify it in the `polygon2mask`-dict in the config.
 
 Postprocessing settings:
 
@@ -66,17 +66,21 @@ Individual for train / val / test:
         {
             "json_path": "path/to/annotaion.json",
             "image_root": "path/to/folder/with/images",
-            "processed_data_path": "path/to/save/processed_dataset.csv"
+            "processed_data_path": "path/to/save/processed_dataset.csv",
+            "prob": 0.5
         },
         ...
     ],
+    "epoch_size": 2000,
     "batch_size": 8
 }
 ```
-In `datasets`-dict, you can specify paths to multiple datasets for training and testing.
+In `datasets`-dict, you can specify paths to multiple datasets for train / test / val processes.
 
 - `json_path` (to the annotation.json) and `image_root` (to the folder with images) are paths to the dataset with markup in COCO format.
 - `processed_data_path` - the saving path of the final csv file, which is produced by the prepare_dataset.py script. This csv-file will be used in the train stage. This file stores paths to the processed target masks.
+- `epoch_size` - the size of an epoch. If you set it to `null`, then the epoch size will be equal to the amount of samples in the all datasets.
+- It is also possible to specify several datasets for the train/validation/test, setting the probabilities for each dataset separately (the sum of `prob` can be greater than 1, since normalization occurs inside the processing).
 
 ## Input dataset description
 
