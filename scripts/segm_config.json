@@ -7,8 +7,8 @@
         "height": 896
     },
     "classes": {
-        "shrinked_pupil_text": {
-            "annotation_classes": ["pupil_text"],
+        "class_name_1": {
+            "annotation_classes": ["text"],
             "polygon2mask": {
                 "ShrinkMaskMaker": {"shrink_ratio": 0.5}
             },
@@ -17,8 +17,8 @@
                 "min_area": 10
             }
         },
-        "shrinked_comments": {
-            "annotation_classes": ["pupil_comment", "teacher_comment"],
+        "class_name_2": {
+            "annotation_classes": ["text2", "text3"],
             "polygon2mask": {
                 "ShrinkMaskMaker": {"shrink_ratio": 0.5}
             },
@@ -27,8 +27,8 @@
                 "min_area": 10
             }
         },
-        "bordered_text": {
-            "annotation_classes": ["pupil_text", "pupil_comment", "teacher_comment"],
+        "class_name_3": {
+            "annotation_classes": ["text"],
             "polygon2mask": {
                 "BorderMaskMaker": {"shrink_ratio": 0.5}
             },
@@ -41,58 +41,34 @@
     "train": {
         "datasets": [
             {
-                "json_path": "/workdir/data/segmentation_15102021/annotations_train.json",
-                "image_root": "/workdir/data/segmentation_15102021/images/",
-                "processed_data_path": "/workdir/data/segmentation_15102021/annotations_train.csv",
-                "prob": 0.45
+                "json_path": "/workdir/data/segm1/annotations_train.json",
+                "image_root": "/workdir/data/segm1/images/",
+                "processed_data_path": "/workdir/data/segm1/annotations_train.csv",
+                "prob": 0.5
             },
             {
-                "json_path": "/workdir/data/segmentation_26012022/annotations_train.json",
-                "image_root": "/workdir/data/segmentation_26012022/images/",
-                "processed_data_path": "/workdir/data/segmentation_26012022/annotations_train.csv",
-                "prob": 0.4
-            },
-            {
-                "json_path": "/workdir/data/segmentation_11032022_en/annotations_train.json",
-                "image_root": "/workdir/data/segmentation_11032022_en/images/",
-                "processed_data_path": "/workdir/data/segmentation_11032022_en/annotations_train.csv",
-                "prob": 0.05
-            },
-            {
-                "json_path": "/workdir/data/segmentation_11032022_ru/annotations_train.json",
-                "image_root": "/workdir/data/segmentation_11032022_ru/images/",
-                "processed_data_path": "/workdir/data/segmentation_11032022_ru/annotations_train.csv",
-                "prob": 0.1
+                "json_path": "/workdir/data/segm2/annotations_train.json",
+                "image_root": "/workdir/data/segm2/images/",
+                "processed_data_path": "/workdir/data/segm2/annotations_train.csv",
+                "prob": 0.5
             }
         ],
-        "epoch_size": 1900,
+        "epoch_size": 1000,
         "batch_size": 10
     },
     "val": {
         "datasets": [
             {
-                "json_path": "/workdir/data/segmentation_15102021/annotations_val.json",
-                "image_root": "/workdir/data/segmentation_15102021/images/",
-                "processed_data_path": "/workdir/data/segmentation_15102021/annotations_val.csv",
-                "prob": 1
+                "json_path": "/workdir/data/segm1/annotations_val.json",
+                "image_root": "/workdir/data/segm1/images/",
+                "processed_data_path": "/workdir/data/segm1/annotations_val.csv",
+                "prob": 0.5
             },
             {
-                "json_path": "/workdir/data/segmentation_26012022/annotations_val.json",
-                "image_root": "/workdir/data/segmentation_26012022/images/",
-                "processed_data_path": "/workdir/data/segmentation_26012022/annotations_val.csv",
-                "prob": 1
-            },
-            {
-                "json_path": "/workdir/data/segmentation_11032022_en/annotations_val.json",
-                "image_root": "/workdir/data/segmentation_11032022_en/images/",
-                "processed_data_path": "/workdir/data/segmentation_11032022_en/annotations_val.csv",
-                "prob": 1
-            },
-            {
-                "json_path": "/workdir/data/segmentation_11032022_ru/annotations_val.json",
-                "image_root": "/workdir/data/segmentation_11032022_ru/images/",
-                "processed_data_path": "/workdir/data/segmentation_11032022_ru/annotations_val.csv",
-                "prob": 1
+                "json_path": "/workdir/data/segm2/annotations_val.json",
+                "image_root": "/workdir/data/segm2/images/",
+                "processed_data_path": "/workdir/data/segm2/annotations_val.csv",
+                "prob": 0.5
             }
         ],
         "epoch_size": null,
@@ -101,28 +77,16 @@
     "test": {
         "datasets": [
             {
-                "json_path": "/workdir/data/segmentation_15102021/annotations_test.json",
-                "image_root": "/workdir/data/segmentation_15102021/images/",
-                "processed_data_path": "/workdir/data/segmentation_15102021/annotations_test.csv",
-                "prob": 1
+                "json_path": "/workdir/data/segm1/annotations_test.json",
+                "image_root": "/workdir/data/segm1/images/",
+                "processed_data_path": "/workdir/data/segm1/annotations_test.csv",
+                "prob": 0.5
             },
             {
-                "json_path": "/workdir/data/segmentation_26012022/annotations_test.json",
-                "image_root": "/workdir/data/segmentation_26012022/images/",
-                "processed_data_path": "/workdir/data/segmentation_26012022/annotations_test.csv",
-                "prob": 1
-            },
-            {
-                "json_path": "/workdir/data/segmentation_11032022_en/annotations_test.json",
-                "image_root": "/workdir/data/segmentation_11032022_en/images/",
-                "processed_data_path": "/workdir/data/segmentation_11032022_en/annotations_test.csv",
-                "prob": 1
-            },
-            {
-                "json_path": "/workdir/data/segmentation_11032022_ru/annotations_test.json",
-                "image_root": "/workdir/data/segmentation_11032022_ru/images/",
-                "processed_data_path": "/workdir/data/segmentation_11032022_ru/annotations_test.csv",
-                "prob": 1
+                "json_path": "/workdir/data/segm2/annotations_test.json",
+                "image_root": "/workdir/data/segm2/images/",
+                "processed_data_path": "/workdir/data/segm2/annotations_test.csv",
+                "prob": 0.5
             }
         ],
         "epoch_size": null,
